@@ -1,0 +1,1048 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<ZApplication Name="App" Comment="ZGEBullet demo #1. Created by Rado1" Caption="Physics Demo1" CustomScreenWidth="800" CustomScreenHeight="480" CameraPosition="-44.7881 10 39.9252" CameraRotation="0 0.1341 0" CustomViewportRatio="1.6667" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
+  <OnLoaded>
+    <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZGEBullet" CallingConvention="1" DefinitionsFile="zgebullet.txt">
+      <BeforeInitExp>
+<![CDATA[if(ANDROID){
+  this.ModuleName = "./libZGEBullet.so";
+  this.CallingConvention = 0;
+}]]>
+      </BeforeInitExp>
+    </ZExternalLibrary>
+    <ZLibrary Comment="Utils">
+      <Source>
+<![CDATA[// create standardized collision shape
+int createCollisionShape(int type){
+
+  switch(type){
+    case CUBE1_SHAPE: return zbtCreateBoxShape(1, 1, 1);
+    case CUBE2_SHAPE: return zbtCreateBoxShape(1, 2, 1);
+    case CUBE3_SHAPE: return zbtCreateBoxShape(1, 3, 1);
+    case CUBE4_SHAPE: return zbtCreateBoxShape(1, 4, 1);
+    case CYLINDER1_SHAPE: return zbtCreateCylinderShape(1, 1);
+    case CYLINDER2_SHAPE: return zbtCreateCylinderShape(1, 2);
+    case CYLINDER3_SHAPE: return zbtCreateCylinderShape(1, 3);
+    case CYLINDER4_SHAPE: return zbtCreateCylinderShape(1, 4);
+    case CONE_SHAPE: return zbtCreateConeShape(1, 2);
+    case DOMINO_SHAPE: return zbtCreateBoxShape(1, 2, 0.2);
+    case KAPLA_SHAPE: return zbtCreateBoxShape(0.75, 3.75, 0.25);
+    case SPHERE_SHAPE: return zbtCreateSphereShape(1.0);
+    case SCALABLE_SPHERE_SHAPE: return zbtCreateScalableSphereShape(1.0);
+  }
+}]]>
+      </Source>
+    </ZLibrary>
+    <ZExpression Comment="Init">
+      <Expression>
+<![CDATA[// init random seed
+setRandomSeed(getSystemTime());
+
+// init physical world
+zbtCreateWorld();
+zbtSetWorldGravity(0, -10, 0);
+
+// init collision shapes
+Cube1ShapeId = createCollisionShape(CUBE1_SHAPE); // cube 1
+Cube2ShapeId = createCollisionShape(CUBE2_SHAPE); // cube 2
+Cube3ShapeId = createCollisionShape(CUBE3_SHAPE); // cube 3
+Cube4ShapeId = createCollisionShape(CUBE4_SHAPE); // cube 4
+Cylinder1ShapeId = createCollisionShape(CYLINDER1_SHAPE); // cylinder 1
+Cylinder2ShapeId = createCollisionShape(CYLINDER2_SHAPE); // cylinder 2
+Cylinder3ShapeId = createCollisionShape(CYLINDER3_SHAPE); // cylinder 3
+Cylinder4ShapeId = createCollisionShape(CYLINDER4_SHAPE); // cylinder 4
+ConeShapeId = createCollisionShape(CONE_SHAPE); // cone
+DominoShapeId = createCollisionShape(DOMINO_SHAPE); // domino
+KaplaShapeId = createCollisionShape(KAPLA_SHAPE); // kapla
+SphereShapeId = createCollisionShape(SPHERE_SHAPE); // sphere
+ScalableSphereShapeId = createCollisionShape(SCALABLE_SPHERE_SHAPE); // scalable sphere
+
+// create ground
+int sh = zbtCreateBoxShape(100,1,100);
+//zbtCreateStaticPlaneShape(0,1,0,0);
+int rb = zbtAddRigidBody(0, sh, 0, -1, 0, 0, 0, 0);
+zbtSetFriction(rb, 1);
+
+// init scene
+Scene = -1;]]>
+      </Expression>
+    </ZExpression>
+    <CallComponent Component="InitScene"/>
+  </OnLoaded>
+  <OnClose>
+    <ZExpression>
+      <Expression>
+<![CDATA[// destroy physical world, collision shapes and height lists
+zbtDestroyWorld();
+zbtDeleteAllShapes();]]>
+      </Expression>
+    </ZExpression>
+  </OnClose>
+  <OnUpdate>
+    <ZExpression Comment="Update simulation">
+      <Expression>
+<![CDATA[// simulation step
+float t = App.DeltaTime;
+zbtStepSimulation(t, 1, t);
+
+// rotate camera
+t = App.Time / 30;
+App.CameraPosition.X = cos(t * PIx2) * 60;
+App.CameraPosition.Z = sin(t * PIx2) * 60;
+App.CameraRotation.Y = t - ROT90;]]>
+      </Expression>
+    </ZExpression>
+    <KeyPress Comment="LMB press or touch" Keys="{">
+      <OnPressed>
+        <RemoveAllModels/>
+        <ZExpression Name="InitScene">
+          <Expression>
+<![CDATA[int shooting = FALSE;
+
+// next scene
+if(++Scene == NUMBER_OF_SCENES) Scene = 0;
+
+// set comon properties
+ObjectScaleX = ObjectScaleY = ObjectScaleZ = 1;
+
+// build a brick formation
+switch(Scene){
+
+  case 0: // build box
+
+    ObjectType = CYLINDER2_SHAPE;
+    ObjectMass = 0.1;
+    ObjectActivationState = FALSE;
+    ObjectLinearDamping = ObjectAngularDamping = DEFAULT_DAMPING;
+    ObjectRotationX = ObjectRotationY = ObjectRotationZ = 0;
+
+    for(int i = 1; i < 6; i++)
+      for(int j = 0; j < 5; j++)
+        for(int k = 0; k < 5; k++){
+
+          // set position
+          ObjectPositionX = j * 3 - 6;
+          ObjectPositionY = i * 4 - 2;
+          ObjectPositionZ = k * 3 - 6;
+
+          // set color
+          ObjectColorR = 0.5 + 0.2 * i;
+          ObjectColorG = 0.3 + 0.1 * j;
+          ObjectColorB = 1 - 0.2 * k;
+
+          // spawn
+          createModel(BrickModel);
+        }
+
+    // init shooting
+    shooting = TRUE;
+
+    break;
+
+  case 1: // build dominoes
+
+    float x = -20;
+    float z = 0;
+    float a = 0;
+
+    // set commmon properties
+    ObjectType = DOMINO_SHAPE;
+    ObjectMass = 0.1;
+    ObjectActivationState = TRUE;
+    ObjectLinearDamping = ObjectAngularDamping = 0;
+    ObjectPositionX = x;
+    ObjectPositionY = 2.1;
+    ObjectPositionZ = z - 1.5;
+    ObjectRotationX = 0.05;
+    ObjectRotationY = ObjectRotationZ = 0;
+
+    for(int i = 100; i > 50; i--){
+
+      ObjectColorR = frac(i/2.0) < 0.5 ? 1 - (i-50) / 100.0: 0;
+      ObjectColorG = (i-50) / 50.0;
+      ObjectColorB = frac(i/2.0) >= 0.5 ? 0.8 - (i-50) / 300.0: 0;
+
+      // spawn
+      createModel(BrickModel);
+
+      ObjectPositionX = x;
+      ObjectPositionZ = z;
+      ObjectRotationX = 0;
+      ObjectRotationY = a;
+      ObjectActivationState = FALSE;
+
+      a += 2.2 / i;
+      x += sin(a*PIx2) * 3;
+      z += cos(a*PIx2) * 3;
+    }
+
+    break;
+
+  case 2: // castle
+    // set commmon properties
+    ObjectMass = 0.3;
+    ObjectActivationState = FALSE;
+    ObjectLinearDamping = DEFAULT_DAMPING;
+    ObjectAngularDamping = DEFAULT_DAMPING;
+    ObjectRotationX = ObjectRotationY = ObjectRotationZ = 0;
+
+    // main pillars
+    ObjectType = CYLINDER2_SHAPE;
+    ObjectColorR = ObjectColorG = 1;
+    ObjectColorB = 0;
+    // 1st
+    ObjectPositionX = ObjectPositionZ = 3;
+    ObjectPositionY = 2;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionX = -3;
+    createModel(BrickModel);
+    // 3rd
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionX = 3;
+    createModel(BrickModel);
+
+    // side smaller pillars
+    ObjectType = CYLINDER1_SHAPE;
+    ObjectColorR = 0;
+    ObjectColorG = 0.5;
+    ObjectColorB = 1;
+    // 1st
+    ObjectPositionX = 5;
+    ObjectPositionY = 1;
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+    // 3nd
+    ObjectPositionX = 9;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 5th
+    ObjectPositionX = -5;
+    createModel(BrickModel);
+    // 6th
+    ObjectPositionZ=-3;
+    createModel(BrickModel);
+    // 7th
+    ObjectPositionX=-9;
+    createModel(BrickModel);
+    // 8th
+    ObjectPositionZ=3;
+    createModel(BrickModel);
+
+    // main horizontal beams
+    ObjectType = CUBE4_SHAPE;
+    ObjectRotationZ = ROT90;
+    ObjectColorR = 1;
+    ObjectColorG = 0.2;
+    ObjectColorB = 0;
+    // 1st
+    ObjectPositionX = 0;
+    ObjectPositionY = 5;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionZ=-3;
+    createModel(BrickModel);
+
+    // side horizontal beams
+    ObjectType = CUBE3_SHAPE;
+    ObjectColorR = 0;
+    ObjectColorG = 1;
+    ObjectColorB = 0.2;
+    // 1st
+    ObjectPositionX = 7;
+    ObjectPositionY = 3;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionZ=3;
+    createModel(BrickModel);
+    // 3rd
+    ObjectPositionX = -7;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionZ=-3;
+    createModel(BrickModel);
+
+    // main 2nd-level beams
+    ObjectType = CUBE4_SHAPE;
+    ObjectColorR = ObjectColorB = 1;
+    ObjectColorG = 0.2;
+    ObjectRotationX = ROT90;
+    // 1st
+    ObjectPositionX = 1;
+    ObjectPositionY = 7;
+    ObjectPositionZ = 0;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionX = -1;
+    createModel(BrickModel);
+
+    // gable
+    ObjectType = CONE_SHAPE;
+    ObjectColorG = 1;
+    ObjectColorB = 0;
+    ObjectRotationX = ObjectRotationZ = 0;
+    // 1st
+    ObjectPositionX = 0;
+    ObjectPositionY = 9;
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+
+    // low tower
+    ObjectType = CUBE2_SHAPE;
+    ObjectColorR = 0;
+    ObjectColorG = 0.5;
+    ObjectColorB = 1;
+    // 1st
+    ObjectPositionX = 3;
+    ObjectPositionY = 8;
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionX = -3;
+    createModel(BrickModel);
+    // 3rd
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionX = 3;
+    createModel(BrickModel);
+
+    // up tower
+    ObjectType = CYLINDER2_SHAPE;
+    ObjectColorR = 0;
+    ObjectColorG = 1;
+    ObjectColorB = 0.2;
+    // 1st
+    ObjectPositionY = 12;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionX = -3;
+    createModel(BrickModel);
+    // 3rd
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionX = 3;
+    createModel(BrickModel);
+
+    // roof
+    ObjectType = CONE_SHAPE;
+    ObjectColorR = 1;
+    ObjectColorG = 0.2;
+    ObjectColorB = 0;
+    // 1st
+    ObjectPositionY = 15;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionX = -3;
+    createModel(BrickModel);
+    // 3rd
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionX = 3;
+    createModel(BrickModel);
+
+    // side walls
+    ObjectType = CUBE2_SHAPE;
+    ObjectColorR = ObjectColorG = 1;
+    ObjectColorB = 0;
+    ObjectRotationY = ROT45;
+    // 1st
+    ObjectPositionX = 5.5;
+    ObjectPositionY = 6;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 3rd
+    ObjectPositionX = -5.5;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+    // 5th
+    ObjectType = CUBE1_SHAPE;
+    ObjectColorR = ObjectColorB = 1;
+    ObjectColorG = 0;
+    ObjectPositionX = 8.5;
+    ObjectPositionY = 5;
+    createModel(BrickModel);
+    // 6th
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 7th
+    ObjectPositionX = -8.5;
+    createModel(BrickModel);
+    // 8th
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+
+    // side roofs
+    ObjectType = CONE_SHAPE;
+    ObjectColorG = 0.2;
+    ObjectColorB = 0;
+    // 1st
+    ObjectPositionX = 5.5;
+    ObjectPositionY = 9;
+    createModel(BrickModel);
+    // 2nd
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 3rd
+    ObjectPositionX = -5.5;
+    createModel(BrickModel);
+    // 4th
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+    // 5th
+    ObjectPositionX = 8.5;
+    ObjectPositionY = 7;
+    createModel(BrickModel);
+    // 6th
+    ObjectPositionZ = 3;
+    createModel(BrickModel);
+    // 7th
+    ObjectPositionX = -8.5;
+    createModel(BrickModel);
+    // 8th
+    ObjectPositionZ = -3;
+    createModel(BrickModel);
+
+    // init shooting
+    shooting = TRUE;
+
+    break;
+
+  case 3: // build tower
+
+    ObjectType = CUBE1_SHAPE;
+    ObjectMass = 0.5;
+    ObjectActivationState = TRUE;
+    ObjectLinearDamping = ObjectAngularDamping = DEFAULT_DAMPING;
+    ObjectRotationX = ObjectRotationZ = 0;
+
+    for(int i = 0; i < 20; i++){
+
+      ObjectColorR = 0.05 * i;
+      ObjectColorG = 1 - 0.05 * i;
+      ObjectColorB = 0.5 - 0.005 * i;
+
+      for(float j = 0; j < 1; j+= 0.1){
+
+          ObjectPositionX = cos(j*PIx2 + i*PI2) * 5;
+          ObjectPositionY = i * 2.01 + 3;
+          ObjectPositionZ = sin(j*PIx2 + i*PI2) * 5;
+          ObjectRotationY = atan2(ObjectPositionX, ObjectPositionZ) / PIx2;
+
+          // spawn
+          createModel(BrickModel);
+        }
+    }
+
+    // init shooting
+    shooting = FALSE;
+}
+
+if(shooting){
+  model m;
+
+  // set color
+  ObjectColorR = 0.3;
+  ObjectColorG = 0.1;
+  ObjectColorB = 0;
+
+  // set position
+  ObjectPositionX = 20;
+  ObjectPositionY = 3;
+  ObjectPositionZ = -20;
+
+  // set physical properties
+  ObjectType = SPHERE_SHAPE;
+  ObjectMass = 2;
+
+  // spawn
+  m = createModel(BrickModel);
+
+  // set velocity
+  zbtSetLinearVelocity(m.BrickId, -25, 8, 25);
+}]]>
+          </Expression>
+        </ZExpression>
+      </OnPressed>
+    </KeyPress>
+  </OnUpdate>
+  <OnRender>
+    <RenderTransformGroup Comment="Sky" Scale="150 100 150" Translate="0 15 0">
+      <Children>
+        <UseMaterial Material="SkyMaterial"/>
+        <RenderMesh Mesh="SphereMesh"/>
+        <RenderTransform Scale="1.5 1 1.5"/>
+        <RenderMesh Mesh="SphereMesh"/>
+      </Children>
+    </RenderTransformGroup>
+    <RenderTransformGroup Comment="Ground" Scale="120 120 1" Translate="0 -0.3 0" Rotate="-0.25 0 0">
+      <Children>
+        <UseMaterial Material="GroundMaterial"/>
+        <RenderSprite/>
+      </Children>
+    </RenderTransformGroup>
+    <UseMaterial Material="DigitsMaterial"/>
+    <RenderText Comment="FPS" TextFloatRef="App FpsCounter" X="-0.97" Y="0.9" Scale="0.5" Align="1"/>
+  </OnRender>
+  <Lights>
+    <Light Position="50 50 50" Color="1 1 0 1" Kind="1"/>
+    <Light Position="-50 50 -50" Color="1 0.502 0 1" Kind="1"/>
+  </Lights>
+  <Content>
+    <Group Comment="Globals">
+      <Children>
+        <Group Comment="Common collision shapes">
+          <Children>
+            <DefineVariable Name="Cube1ShapeId" Type="1"/>
+            <DefineVariable Name="Cube2ShapeId" Type="1"/>
+            <DefineVariable Name="Cube3ShapeId" Type="1"/>
+            <DefineVariable Name="Cube4ShapeId" Type="1"/>
+            <DefineVariable Name="Cylinder1ShapeId" Type="1"/>
+            <DefineVariable Name="Cylinder2ShapeId" Type="1"/>
+            <DefineVariable Name="Cylinder3ShapeId" Type="1"/>
+            <DefineVariable Name="Cylinder4ShapeId" Type="1"/>
+            <DefineVariable Name="ConeShapeId" Type="1"/>
+            <DefineVariable Name="DominoShapeId" Type="1"/>
+            <DefineVariable Name="KaplaShapeId" Type="1"/>
+            <DefineVariable Name="SphereShapeId" Type="1"/>
+            <DefineVariable Name="ScalableSphereShapeId" Type="1"/>
+            <DefineConstant Name="CUBE1_SHAPE" Type="1" IntValue="10"/>
+            <DefineConstant Name="CUBE2_SHAPE" Type="1" IntValue="20"/>
+            <DefineConstant Name="CUBE3_SHAPE" Type="1" IntValue="30"/>
+            <DefineConstant Name="CUBE4_SHAPE" Type="1" IntValue="40"/>
+            <DefineConstant Name="CYLINDER1_SHAPE" Type="1" IntValue="50"/>
+            <DefineConstant Name="CYLINDER2_SHAPE" Type="1" IntValue="60"/>
+            <DefineConstant Name="CYLINDER3_SHAPE" Type="1" IntValue="70"/>
+            <DefineConstant Name="CYLINDER4_SHAPE" Type="1" IntValue="80"/>
+            <DefineConstant Name="CONE_SHAPE" Type="1" IntValue="90"/>
+            <DefineConstant Name="DOMINO_SHAPE" Type="1" IntValue="120"/>
+            <DefineConstant Name="KAPLA_SHAPE" Type="1" IntValue="130"/>
+            <DefineConstant Name="SPHERE_SHAPE" Type="1" IntValue="140"/>
+            <DefineConstant Name="SCALABLE_SPHERE_SHAPE" Type="1" IntValue="145"/>
+          </Children>
+        </Group>
+        <Group Comment="Common 3D object setters">
+          <Children>
+            <DefineVariable Name="ObjectType" Type="1"/>
+            <DefineVariable Name="ObjectPositionX"/>
+            <DefineVariable Name="ObjectPositionY"/>
+            <DefineVariable Name="ObjectPositionZ"/>
+            <DefineVariable Name="ObjectRotationX"/>
+            <DefineVariable Name="ObjectRotationY"/>
+            <DefineVariable Name="ObjectRotationZ"/>
+            <DefineVariable Name="ObjectScaleX"/>
+            <DefineVariable Name="ObjectScaleY"/>
+            <DefineVariable Name="ObjectScaleZ"/>
+            <DefineVariable Name="ObjectColorR"/>
+            <DefineVariable Name="ObjectColorG"/>
+            <DefineVariable Name="ObjectColorB"/>
+            <DefineVariable Name="ObjectMass"/>
+            <DefineVariable Name="ObjectLinearDamping"/>
+            <DefineVariable Name="ObjectAngularDamping"/>
+            <DefineVariable Name="ObjectActivationState" Type="1"/>
+          </Children>
+        </Group>
+        <DefineVariable Name="Scene" Type="1"/>
+        <DefineConstant Name="NUMBER_OF_SCENES" Type="1" IntValue="4"/>
+        <DefineConstant Name="DEFAULT_DAMPING" Value="0.1"/>
+      </Children>
+    </Group>
+    <Group Comment="Artwork">
+      <Children>
+        <Group Comment="Meshes">
+          <Children>
+            <Mesh Name="Cube1Mesh">
+              <Producers>
+                <MeshBox/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="Cube2Mesh">
+              <Producers>
+                <MeshBox Scale="1 2 1"/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="Cube3Mesh">
+              <Producers>
+                <MeshBox Scale="1 3 1"/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="Cube4Mesh">
+              <Producers>
+                <MeshBox Scale="1 4 1"/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="Cylinder1Mesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="2" Grid2DOnly="255"/>
+                <MeshExpression AutoNormals="0">
+                  <Expression>
+<![CDATA[float k;
+if(abs(this.V.Y) < 0.5){
+  k = this.V.X * PI;
+  this.V.X = sin(k);
+  this.V.Z = cos(k);
+} else {
+  this.V.X = 0;
+  this.V.Z = 0;
+}
+
+this.V.Y = this.V.Y < 0 ? -1 : 1;
+
+this.N.X = this.V.X;
+this.N.Y = this.V.Y;
+this.N.Z = this.V.Z;
+
+
+
+/*//
+
+        float E, A, C, X, Y, Z;
+
+        // Convert range to radians
+
+        E = this.V.Y*PI; // Elevation
+        A = this.V.X*PI; // Azimuth
+
+        // Convert spherical coordinates into cartesian
+
+        C = cos(E);
+
+        X = sin(A)*C;
+        Y = sin(E);
+        Z = cos(A)*C;
+
+        // Assign coordinates
+
+        this.V.X = X;
+        this.V.Y = Y;
+        this.V.Z = Z;
+        this.V.Y = this.V.Y > 0 ? 1 : -1;
+
+        this.N.X = X;
+        this.N.Y = Y;
+        this.N.Z = Z;
+ */]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="Cylinder2Mesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="2" Grid2DOnly="255"/>
+                <MeshExpression Scale="1 2 1" AutoNormals="0">
+                  <Expression>
+<![CDATA[float k;
+if(abs(this.V.Y) < 0.5){
+  k = this.V.X * PI;
+  this.V.X = sin(k);
+  this.V.Z = cos(k);
+} else {
+  this.V.X = 0;
+  this.V.Z = 0;
+}
+
+this.V.Y = this.V.Y < 0 ? -1 : 1;
+
+this.N.X = this.V.X;
+this.N.Y = this.V.Y;
+this.N.Z = this.V.Z;
+
+
+
+/*//
+
+        float E, A, C, X, Y, Z;
+
+        // Convert range to radians
+
+        E = this.V.Y*PI; // Elevation
+        A = this.V.X*PI; // Azimuth
+
+        // Convert spherical coordinates into cartesian
+
+        C = cos(E);
+
+        X = sin(A)*C;
+        Y = sin(E);
+        Z = cos(A)*C;
+
+        // Assign coordinates
+
+        this.V.X = X;
+        this.V.Y = Y;
+        this.V.Z = Z;
+        this.V.Y = this.V.Y > 0 ? 1 : -1;
+
+        this.N.X = X;
+        this.N.Y = Y;
+        this.N.Z = Z;
+ */]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="Cylinder3Mesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="2" Grid2DOnly="255"/>
+                <MeshExpression Scale="1 3 1" AutoNormals="0">
+                  <Expression>
+<![CDATA[float k;
+if(abs(this.V.Y) < 0.5){
+  k = this.V.X * PI;
+  this.V.X = sin(k);
+  this.V.Z = cos(k);
+} else {
+  this.V.X = 0;
+  this.V.Z = 0;
+}
+
+this.V.Y = this.V.Y < 0 ? -1 : 1;
+
+this.N.X = this.V.X;
+this.N.Y = this.V.Y;
+this.N.Z = this.V.Z;
+
+
+
+/*//
+
+        float E, A, C, X, Y, Z;
+
+        // Convert range to radians
+
+        E = this.V.Y*PI; // Elevation
+        A = this.V.X*PI; // Azimuth
+
+        // Convert spherical coordinates into cartesian
+
+        C = cos(E);
+
+        X = sin(A)*C;
+        Y = sin(E);
+        Z = cos(A)*C;
+
+        // Assign coordinates
+
+        this.V.X = X;
+        this.V.Y = Y;
+        this.V.Z = Z;
+        this.V.Y = this.V.Y > 0 ? 1 : -1;
+
+        this.N.X = X;
+        this.N.Y = Y;
+        this.N.Z = Z;
+ */]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="Cylinder4Mesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="2" Grid2DOnly="255"/>
+                <MeshExpression Scale="1 4 1" AutoNormals="0">
+                  <Expression>
+<![CDATA[float k;
+if(abs(this.V.Y) < 0.5){
+  k = this.V.X * PI;
+  this.V.X = sin(k);
+  this.V.Z = cos(k);
+} else {
+  this.V.X = 0;
+  this.V.Z = 0;
+}
+
+this.V.Y = this.V.Y < 0 ? -1 : 1;
+
+this.N.X = this.V.X;
+this.N.Y = this.V.Y;
+this.N.Z = this.V.Z;
+
+
+
+/*//
+
+        float E, A, C, X, Y, Z;
+
+        // Convert range to radians
+
+        E = this.V.Y*PI; // Elevation
+        A = this.V.X*PI; // Azimuth
+
+        // Convert spherical coordinates into cartesian
+
+        C = cos(E);
+
+        X = sin(A)*C;
+        Y = sin(E);
+        Z = cos(A)*C;
+
+        // Assign coordinates
+
+        this.V.X = X;
+        this.V.Y = Y;
+        this.V.Z = Z;
+        this.V.Y = this.V.Y > 0 ? 1 : -1;
+
+        this.N.X = X;
+        this.N.Y = Y;
+        this.N.Z = Z;
+ */]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="ConeMesh">
+              <Producers>
+                <MeshSphere ZSamples="3" RadialSamples="18"/>
+                <MeshTransform Rotation="0.25 0 0"/>
+                <MeshExpression Expression="this.V.Y = this.V.Y &lt; 0.5 ? -1 : 1;"/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="DominoMesh">
+              <Producers>
+                <MeshBox Scale="1 2 0.2"/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="KaplaMesh">
+              <Producers>
+                <MeshBox Scale="0.75 3.75 0.25"/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="SphereMesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="12" Grid2DOnly="255"/>
+                <MeshExpression AutoNormals="0">
+                  <Expression>
+<![CDATA[//
+
+        float E, A, C, X, Y, Z;
+
+        // Convert range to radians
+
+        E = this.V.Y*PI; // Elevation
+        A = this.V.X*PI; // Azimuth
+
+        // Convert spherical coordinates into cartesian
+
+        C = cos(E);
+
+        X = sin(A)*C;
+        Y = sin(E);
+        Z = cos(A)*C;
+
+        // Assign coordinates
+
+        this.V.X = X;
+        this.V.Y = Y;
+        this.V.Z = Z;
+
+        this.N.X = X;
+        this.N.Y = Y;
+        this.N.Z = Z;]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+          </Children>
+        </Group>
+        <Group Comment="Bitmaps and Materials">
+          <Children>
+            <Material Name="ObjectMaterial" WireframeWidth="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" Blend="1"/>
+            <Bitmap Name="GroundBitmap">
+              <Producers>
+                <BitmapExpression UseBlankSource="1" Expression="this.Pixel = x &gt; 0.98 || y &gt; 0.98 ? 1 : 0;"/>
+              </Producers>
+            </Bitmap>
+            <Material Name="GroundMaterial" WireframeWidth="1" Shading="1" Color="0 1 0 0.5" Blend="2">
+              <Textures>
+                <MaterialTexture Texture="GroundBitmap" TextureScale="10 10 1" TextureWrapMode="1" TexCoords="1"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+              <Producers>
+                <BitmapFromFile Comment="Imported from SkyBitmap.png">
+                  <BitmapFile>
+<![CDATA[78DA95C2894E080000005091223942D17764342D96C958B54CA6C5B4328665D5328CD1CA18562BD3D4588C95B1B22C568B69B11AC6B05A1A53D362A1880E6749DFF0DE5E64D4FF48BA0C2FC72BECD268BC72D2C6E058BCCA2E598DE3FED935782D8EB711EBF0FA09BB0127E0441B9E8493C7ED46BC09A7D8C59BF196BF3615A7E1AD76D136BCFD8F4DC71938D32EDC8177FEB6BBF06EBCC786EDC559BFEC3E9C8D73EC825C9CF7D3EEC707F0413BFF103EFCC31EC147F1313B2F1F178CD9427C1C9FB0734FE253A3F6343E838B6C68312E19B1A5F82C3E67E794E1F3C3B61C57E00B36E422AEFC6E2FE1CBF88A9D7D15577DB3D5F81ABE6E67DDC03543B616DFC47536F816AEFF6A6FE33BB8C10635E2A62FF62EBE87EFDB99CDB865D03EC00F71AB0D6CC38F06EC63FC043FB5339EE1E79FED0BFC12B7DBE91DB8F3937D85BBF06B1BF006BFFD68BB710F7E67A7F5E2BE7EFB1E7FB05340E956F5]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Material Name="SkyMaterial" WireframeWidth="0" Light="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
+              <Textures>
+                <MaterialTexture Texture="SkyBitmap" TextureScale="1 1.8 0" TextureY="0.59" TexCoords="1"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="DigitsBitmap" Width="3" Height="0">
+              <Producers>
+                <BitmapFromFile Comment="Imported from Digits.bmp" Transparency="1">
+                  <BitmapFile>
+<![CDATA[78DAED583BAE22410C7CC7E5101C8113700172726252524242324232B6F44A2A59FEB567B52BBDE07580861EB7DB2E7FBA7ABEBE7EC78F1897CBE5F57A7D3E1FFCE2B91786D8E3F18893D590CCF97CC642CD3F9FCFEBF5BAB48D4BEC4CD4839974EDF1789464E51A0576BB5D65005EDD6E37E2433DF8EBE4DFEFB7DEDEEFF7C3E130071FDAB010AB601E8DC1F356FC018294B861171273CE431833B07CBFDF6FC29F7AA49F5BE3D72DC446825DAE45316085798090EECEB73012028DD9720A0F8C54A530D56F01A7FE268229FE0C410F66CCB1D3E9B40C77C43FEA41FE43C6C69A7E39B4A3D8B204185CE714FE5620D88D26D5CDE4B7FAA9BC095FB335430054E7D5C7CAB59DD00DA6932BA5D42A483ABF22A4D8CE8A2D4BA0723666C512D86176A9C0FF027F25CC3C048477728EF4FE3A475EDF638E1BE6119AD4BC743E8D63AC916509B095F539B909FF4D2188FD070663779BB7CB4CB381ABCAA10AB72B815862B4D095065BB47590673471E3613101AA92E95D9EA86508403F52AE65CFCDA80A10D9C909FED0E65062381C9EF1B09B9400BC787F0F9ACD670B3E529DC8EB14862A7AB7B4FC3FE1AFCA8D1D58CD046FD3F2244AA294D1189210174797EDA2A6582E66D2D3ADAA0498DEE29F919CA48C852931C1FF9FF79F09AF636933461110DB8552FEC92414C815A5E13968DB42C3F3AB12607A33FF510BD1E6ADBD2E368A4D080FF1671CD38AB679556953178AF833ABFBAD99ED9BEE415509D000011E6D6E5CE8CFE84DFC1356B1E9CDF14F833B942114D831E28F99A55FF4A2BF59546D33B632E76FE45A31CD18A6E52D6C7EFF62A4C80722FEF0D735732260792C661C29A24C0526BB508AFF8411B104969F5352C263ED8C55EC66D8EADD3710E6D5A40009B8FDFE50458DD7BA147FDAA07B3AA17314881104DAE409926998AA4EBD14D8EA4347DC515F0F6C925C8AE1524233EE3E18D1D6594F99C9FD575B108AE5F7B72AFF594A3AEC18D0187DF513C9A41CD59567E43FF3DB19346017C5D1E6EDFCAE0723C527F190268C60273EBD5FBFE3278C3FFC4DB206]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Font Name="DigitsFont" Bitmap="DigitsBitmap" FirstChar="48" CharPixelWidth="12" CharPixelHeight="16"/>
+            <Material Name="DigitsMaterial" Light="0" Blend="2" Font="DigitsFont"/>
+          </Children>
+        </Group>
+      </Children>
+    </Group>
+    <Group Comment="Models">
+      <Children>
+        <Model Name="BrickModel" Position="-33.7846 3.3394 11.3442" Category="1" RenderOrder="1">
+          <Definitions>
+            <DefineVariable Name="BrickId" Type="1"/>
+            <DefineVariable Name="BrickShapeId" Type="1"/>
+          </Definitions>
+          <OnRender>
+            <UseMaterial Material="ObjectMaterial"/>
+            <RenderSetColor Name="BrickColor" Color="0.9404 0.2947 0.476 1"/>
+            <RenderMesh Name="ModelMesh" Mesh="Cube1Mesh"/>
+          </OnRender>
+          <OnUpdate>
+            <ZExpression Comment="Update position and rotation">
+              <Expression>
+<![CDATA[// update position and rotation
+zbtGetPosition(BrickId, CurrentModel.Position.X, CurrentModel.Position.Y, CurrentModel.Position.Z);
+zbtGetRotation(BrickId, CurrentModel.Rotation.X, CurrentModel.Rotation.Y, CurrentModel.Rotation.Z);]]>
+              </Expression>
+            </ZExpression>
+          </OnUpdate>
+          <OnSpawn>
+            <ZExpression Comment="Init">
+              <Expression>
+<![CDATA[int shapeId, rbId;
+int isScaled = ObjectScaleX != 1 || ObjectScaleY != 1 || ObjectScaleZ != 1;
+
+// set properties from generic setters
+CurrentModel.Position.X = ObjectPositionX;
+CurrentModel.Position.Y = ObjectPositionY;
+CurrentModel.Position.Z = ObjectPositionZ;
+CurrentModel.Rotation.X = ObjectRotationX;
+CurrentModel.Rotation.Y = ObjectRotationY;
+CurrentModel.Rotation.Z = ObjectRotationZ;
+
+// select shape
+switch(ObjectType){
+
+  case CUBE1_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CUBE1_SHAPE) : Cube1ShapeId;
+    ModelMesh.Mesh = Cube1Mesh;
+    break;
+
+  case CUBE2_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CUBE2_SHAPE) : Cube2ShapeId;
+    ModelMesh.Mesh = Cube2Mesh;
+    break;
+
+  case CUBE3_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CUBE3_SHAPE) : Cube3ShapeId;
+    ModelMesh.Mesh = Cube3Mesh;
+    break;
+
+  case CUBE4_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CUBE4_SHAPE) : Cube4ShapeId;
+    ModelMesh.Mesh = Cube4Mesh;
+    break;
+
+  case CYLINDER1_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CYLINDER1_SHAPE) : Cylinder1ShapeId;
+    ModelMesh.Mesh = Cylinder1Mesh;
+    break;
+
+  case CYLINDER2_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CYLINDER2_SHAPE) : Cylinder2ShapeId;
+    ModelMesh.Mesh = Cylinder2Mesh;
+    break;
+
+  case CYLINDER3_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CYLINDER3_SHAPE) : Cylinder3ShapeId;
+    ModelMesh.Mesh = Cylinder3Mesh;
+    break;
+
+  case CYLINDER4_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CYLINDER4_SHAPE) : Cylinder4ShapeId;
+    ModelMesh.Mesh = Cylinder4Mesh;
+    break;
+
+  case CONE_SHAPE:
+    shapeId = isScaled ? createCollisionShape(CONE_SHAPE) : ConeShapeId;
+    ModelMesh.Mesh = ConeMesh;
+    break;
+
+  case DOMINO_SHAPE:
+    shapeId = isScaled ? createCollisionShape(DOMINO_SHAPE) : DominoShapeId;
+    ModelMesh.Mesh = DominoMesh;
+    break;
+
+  case KAPLA_SHAPE:
+    shapeId = isScaled ? createCollisionShape(KAPLA_SHAPE) : KaplaShapeId;
+    ModelMesh.Mesh = KaplaMesh;
+    break;
+
+  case SPHERE_SHAPE:
+    shapeId = isScaled ? createCollisionShape(SPHERE_SHAPE) : SphereShapeId;
+    ModelMesh.Mesh = SphereMesh;
+    break;
+
+  case SCALABLE_SPHERE_SHAPE:
+    shapeId = isScaled ? createCollisionShape(SCALABLE_SPHERE_SHAPE) : ScalableSphereShapeId;
+    ModelMesh.Mesh = SphereMesh;
+}
+
+// scale
+if(isScaled){
+  CurrentModel.Scale.X = ObjectScaleX;
+  CurrentModel.Scale.Y = ObjectScaleY;
+  CurrentModel.Scale.Z = ObjectScaleZ;
+
+  zbtSetShapeLocalScaling(shapeId, ObjectScaleX, ObjectScaleY, ObjectScaleZ);
+  BrickShapeId = shapeId;
+} else BrickShapeId = -1;
+
+// create rigid body
+rbId = zbtAddRigidBody(ObjectMass, shapeId,
+  ObjectPositionX, ObjectPositionY, ObjectPositionZ,
+  ObjectRotationX, ObjectRotationY, ObjectRotationZ);
+BrickId = rbId;
+
+// set physical properties
+zbtSetDamping(rbId, ObjectLinearDamping, ObjectAngularDamping);
+zbtSetActivationState(rbId, ObjectActivationState);
+zbtSetDeactivationThresholds(rbId, 0.4, 0.4);
+
+// set color and texture
+BrickColor.Color.R = ObjectColorR;
+BrickColor.Color.G = ObjectColorG;
+BrickColor.Color.B = ObjectColorB;]]>
+              </Expression>
+            </ZExpression>
+          </OnSpawn>
+          <OnRemove>
+            <ZExpression Comment="Delete rigid body and shape">
+              <Expression>
+<![CDATA[zbtDeleteRigidBody(BrickId);
+if(BrickShapeId>0) zbtDeleteShape(BrickShapeId);]]>
+              </Expression>
+            </ZExpression>
+          </OnRemove>
+        </Model>
+      </Children>
+    </Group>
+  </Content>
+</ZApplication>
