@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<ZApplication Name="App" Comment="ZGEBullet demo #2. Created by Rado1" Caption="Physics Demo2" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" CustomScreenWidth="800" CustomScreenHeight="480" CameraPosition="79.2843 30 10.6768" CameraRotation="0.05 -0.2287 0" LightPosition="0 0 0" CustomViewportRatio="1.6667" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo2">
+  <OnLoaded>
+    <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZGEBullet" CallingConvention="1" DefinitionsFile="zgebullet.txt">
+      <BeforeInitExp>
+<![CDATA[if(ANDROID){
+  this.ModuleName = "./libZGEBullet.so";
+  this.CallingConvention = 0;
+}]]>
+      </BeforeInitExp>
+    </ZExternalLibrary>
+    <ZExpression Comment="Init">
+      <Expression>
+<![CDATA[// init random seed
+setRandomSeed(getSystemTime());
+
+// init physical world
+zbtCreateWorld();
+zbtSetWorldGravity(0, -10, 0);
+
+// create sphere collision shape
+SphereShapeId = zbtCreateSphereShape(1.0);
+
+// create terrain
+TerrainGenOffset = rnd()*100;
+@RefreshContent(Component: TerrainMesh);
+int sh = zbtCreateHeightfieldTerrainShape(Terrain, FLOAT, 10, 10, 0, -2, 2, AXIS_Y_LINEAR, FALSE, FALSE);
+zbtSetShapeLocalScaling(sh, 9, 10, 9);
+int rb = zbtAddRigidBody(0, sh, 0, 0, 0, 0, 0, 0);
+zbtSetFriction(rb, 1);]]>
+      </Expression>
+    </ZExpression>
+  </OnLoaded>
+  <OnClose>
+    <ZExpression>
+      <Expression>
+<![CDATA[// destroy physical world, collision shapes and height lists
+zbtDestroyWorld();
+zbtDeleteAllShapes();]]>
+      </Expression>
+    </ZExpression>
+  </OnClose>
+  <OnUpdate>
+    <ZExpression Comment="Update simulation and rotate camera">
+      <Expression>
+<![CDATA[// simulation step
+float t = App.DeltaTime;
+zbtStepSimulation(t, 3, t/2);
+
+// rotate camera
+t = App.Time / 30;
+App.CameraPosition.X = cos(t * PIx2) * 80;
+App.CameraPosition.Z = sin(t * PIx2) * 80;
+App.CameraRotation.Y = t - ROT90;]]>
+      </Expression>
+    </ZExpression>
+    <Timer Comment="Spawn spheres" Interval="0.5">
+      <OnTimer>
+        <SpawnModel Model="SphereModel"/>
+      </OnTimer>
+    </Timer>
+    <Condition Comment="Android?" Expression="return ANDROID;">
+      <OnTrue>
+        <ZExpression Comment="Handle touches">
+          <Expression>
+<![CDATA[if(touchGetCount() == 1) // 1 touchGetCount point - update terrain
+  @CallComponent(Component: UpdateTerrain);
+else if(touchGetCount() > 1) // more than 1 touch - remove spheres
+  @RemoveAllModels();]]>
+          </Expression>
+        </ZExpression>
+      </OnTrue>
+      <OnFalse>
+        <KeyPress Comment="LMB - change terrain" Keys="{">
+          <OnPressed>
+            <Group Name="UpdateTerrain">
+              <Children>
+                <ZExpression Expression="TerrainGenOffset += App.DeltaTime / 5;"/>
+                <RefreshContent Component="TerrainMesh"/>
+              </Children>
+            </Group> <!-- UpdateTerrain -->
+
+          </OnPressed>
+        </KeyPress>
+        <KeyPress Comment="Space - remove spheres" Keys=" ">
+          <OnPressed>
+            <RemoveAllModels/>
+          </OnPressed>
+        </KeyPress>
+      </OnFalse>
+    </Condition>
+  </OnUpdate>
+  <OnRender>
+    <RenderTransformGroup Comment="Sky" Scale="150 100 150" Translate="0 15 0">
+      <Children>
+        <UseMaterial Material="SkyMaterial"/>
+        <RenderMesh Mesh="SphereMesh"/>
+        <RenderTransform Scale="1.5 1 1.5"/>
+        <RenderMesh Mesh="SphereMesh"/>
+      </Children>
+    </RenderTransformGroup>
+    <RenderTransformGroup Comment="Ground" Scale="40 40 10" Rotate="-0.25 -0.25 0">
+      <Children>
+        <UseMaterial Material="TerrainMaterial"/>
+        <RenderMesh Mesh="TerrainMesh"/>
+      </Children>
+    </RenderTransformGroup>
+    <UseMaterial Material="DigitsMaterial"/>
+    <RenderText Comment="FPS" TextFloatRef="App FpsCounter" X="-0.97" Y="0.9" Scale="0.5" Align="1"/>
+  </OnRender>
+  <Lights>
+    <Light Position="20 50 20" Color="1 1 0 1" SpotDirection="0 -1 0" SpotCutoff="0"/>
+  </Lights>
+  <Content>
+    <Group Comment="Globals">
+      <Children>
+        <DefineVariable Name="SphereShapeId" Type="1"/>
+        <DefineArray Name="Terrain" Dimensions="1" SizeDim1="10" SizeDim2="10"/>
+        <DefineVariable Name="TerrainGenOffset"/>
+      </Children>
+    </Group>
+    <Group Comment="Artwork">
+      <Children>
+        <Group Comment="Meshes">
+          <Children>
+            <Mesh Name="SphereMesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="12" Grid2DOnly="255"/>
+                <MeshExpression AutoNormals="0">
+                  <Expression>
+<![CDATA[//
+
+        float E, A, C, X, Y, Z;
+
+        // Convert range to radians
+
+        E = this.V.Y*PI; // Elevation
+        A = this.V.X*PI; // Azimuth
+
+        // Convert spherical coordinates into cartesian
+
+        C = cos(E);
+
+        X = sin(A)*C;
+        Y = sin(E);
+        Z = cos(A)*C;
+
+        // Assign coordinates
+
+        this.V.X = X;
+        this.V.Y = Y;
+        this.V.Z = Z;
+
+        this.N.X = X;
+        this.N.Y = Y;
+        this.N.Z = Z;]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="TerrainMesh">
+              <Producers>
+                <MeshBox XCount="8" YCount="8" Grid2DOnly="255"/>
+                <MeshExpression VertexColors="255">
+                  <Expression>
+<![CDATA[//V : current vertex
+//N : current normal (turn off AutoNormals when modifying normals)
+//C : current color (turn on VertexColors)
+//TexCoord : current texture coordinate (turn on HasTexCoords)
+float h = noise3(this.V.X*2, this.V.Y*2, TerrainGenOffset)*2 + 0.6;
+this.V.Z = h;
+this.C.R = h+0.5;
+this.C.G = h/2;
+Terrain[floor((this.V.X+1)*4.9), floor((this.V.Y+1)*4.9)] = h;]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+          </Children>
+        </Group>
+        <Group Comment="Bitmaps and Materials">
+          <Children>
+            <Material Name="ObjectMaterial" WireframeWidth="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1"/>
+            <Bitmap Name="TerrainBitmap" Filter="2">
+              <Producers>
+                <BitmapExpression UseBlankSource="1" Expression="this.Pixel = x &gt; 0.9 || y &gt; 0.9 ? 0 :1;"/>
+              </Producers>
+            </Bitmap>
+            <Material Name="TerrainMaterial" WireframeWidth="1" Color="1 0.502 1 0.5" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
+              <Textures>
+                <MaterialTexture Texture="TerrainBitmap" TextureScale="100 100 1" TextureWrapMode="1" TexCoords="1"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+              <Producers>
+                <BitmapFromFile Comment="Imported from SkyBitmap.png">
+                  <BitmapFile>
+<![CDATA[78DA95C2894E080000005091223942D17764342D96C958B54CA6C5B4328665D5328CD1CA18562BD3D4588C95B1B22C568B69B11AC6B05A1A53D362A1880E6749DFF0DE5E64D4FF48BA0C2FC72BECD268BC72D2C6E058BCCA2E598DE3FED935782D8EB711EBF0FA09BB0127E0441B9E8493C7ED46BC09A7D8C59BF196BF3615A7E1AD76D136BCFD8F4DC71938D32EDC8177FEB6BBF06EBCC786EDC559BFEC3E9C8D73EC825C9CF7D3EEC707F0413BFF103EFCC31EC147F1313B2F1F178CD9427C1C9FB0734FE253A3F6343E838B6C68312E19B1A5F82C3E67E794E1F3C3B61C57E00B36E422AEFC6E2FE1CBF88A9D7D15577DB3D5F81ABE6E67DDC03543B616DFC47536F816AEFF6A6FE33BB8C10635E2A62FF62EBE87EFDB99CDB865D03EC00F71AB0D6CC38F06EC63FC043FB5339EE1E79FED0BFC12B7DBE91DB8F3937D85BBF06B1BF006BFFD68BB710F7E67A7F5E2BE7EFB1E7FB05340E956F5]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Material Name="SkyMaterial" WireframeWidth="0" Light="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
+              <Textures>
+                <MaterialTexture Texture="SkyBitmap" TextureScale="1 2.17 0" TextureY="0.64" TexCoords="1"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="DigitsBitmap" Width="3" Height="0">
+              <Producers>
+                <BitmapFromFile Comment="Imported from Digits.bmp" Transparency="1">
+                  <BitmapFile>
+<![CDATA[78DAED583BAE22410C7CC7E5101C8113700172726252524242324232B6F44A2A59FEB567B52BBDE07580861EB7DB2E7FBA7ABEBE7EC78F1897CBE5F57A7D3E1FFCE2B91786D8E3F18893D590CCF97CC642CD3F9FCFEBF5BAB48D4BEC4CD4839974EDF1789464E51A0576BB5D65005EDD6E37E2433DF8EBE4DFEFB7DEDEEFF7C3E130071FDAB010AB601E8DC1F356FC018294B861171273CE431833B07CBFDF6FC29F7AA49F5BE3D72DC446825DAE45316085798090EECEB73012028DD9720A0F8C54A530D56F01A7FE268229FE0C410F66CCB1D3E9B40C77C43FEA41FE43C6C69A7E39B4A3D8B204185CE714FE5620D88D26D5CDE4B7FAA9BC095FB335430054E7D5C7CAB59DD00DA6932BA5D42A483ABF22A4D8CE8A2D4BA0723666C512D86176A9C0FF027F25CC3C048477728EF4FE3A475EDF638E1BE6119AD4BC743E8D63AC916509B095F539B909FF4D2188FD070663779BB7CB4CB381ABCAA10AB72B815862B4D095065BB47590673471E3613101AA92E95D9EA86508403F52AE65CFCDA80A10D9C909FED0E65062381C9EF1B09B9400BC787F0F9ACD670B3E529DC8EB14862A7AB7B4FC3FE1AFCA8D1D58CD046FD3F2244AA294D1189210174797EDA2A6582E66D2D3ADAA0498DEE29F919CA48C852931C1FF9FF79F09AF636933461110DB8552FEC92414C815A5E13968DB42C3F3AB12607A33FF510BD1E6ADBD2E368A4D080FF1671CD38AB679556953178AF833ABFBAD99ED9BEE415509D000011E6D6E5CE8CFE84DFC1356B1E9CDF14F833B942114D831E28F99A55FF4A2BF59546D33B632E76FE45A31CD18A6E52D6C7EFF62A4C80722FEF0D735732260792C661C29A24C0526BB508AFF8411B104969F5352C263ED8C55EC66D8EADD3710E6D5A40009B8FDFE50458DD7BA147FDAA07B3AA17314881104DAE409926998AA4EBD14D8EA4347DC515F0F6C925C8AE1524233EE3E18D1D6594F99C9FD575B108AE5F7B72AFF594A3AEC18D0187DF513C9A41CD59567E43FF3DB19346017C5D1E6EDFCAE0723C527F190268C60273EBD5FBFE3278C3FFC4DB206]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Font Name="DigitsFont" Bitmap="DigitsBitmap" FirstChar="48" CharPixelWidth="12" CharPixelHeight="16"/>
+            <Material Name="DigitsMaterial" Light="0" Blend="2" Font="DigitsFont"/>
+          </Children>
+        </Group>
+      </Children>
+    </Group>
+    <Group Comment="Models">
+      <Children>
+        <Model Name="SphereModel" Position="-33.7846 3.3394 11.3442" Category="1" RenderOrder="1">
+          <Definitions>
+            <DefineVariable Name="SphereId" Type="1"/>
+          </Definitions>
+          <OnRender>
+            <UseMaterial Material="ObjectMaterial"/>
+            <RenderSetColor Name="SphereColor" Color="0.9404 0.2947 0.476 1"/>
+            <RenderMesh Mesh="SphereMesh"/>
+          </OnRender>
+          <OnUpdate>
+            <ZExpression Comment="Update position and rotation">
+              <Expression>
+<![CDATA[// update position and rotation
+zbtGetPosition(SphereId, CurrentModel.Position.X, CurrentModel.Position.Y, CurrentModel.Position.Z);
+zbtGetRotation(SphereId, CurrentModel.Rotation.X, CurrentModel.Rotation.Y, CurrentModel.Rotation.Z);]]>
+              </Expression>
+            </ZExpression>
+            <Condition Comment="Remove if too low" Expression="return CurrentModel.Position.Y &lt; -30;">
+              <OnTrue>
+                <RemoveModel/>
+              </OnTrue>
+            </Condition>
+          </OnUpdate>
+          <OnSpawn>
+            <ZExpression Comment="Init">
+              <Expression>
+<![CDATA[// create rigid body
+SphereId = zbtAddRigidBody(0.1, SphereShapeId, 0, 20, 0, 0, 0, 0);
+
+// set physical properties
+zbtSetDamping(SphereId, 0.1, 0.1);
+//zbtSetActivationState(rbId, TRUE);
+zbtSetDeactivationThresholds(SphereId, 0, 0);
+zbtSetLinearVelocity(SphereId, random(0,7), 0, random(0,7));
+zbtSetAngularVelocity(SphereId, random(0,1), random(0,1), random(0,1));
+
+// set color
+SphereColor.Color.R = rnd() + 0.1;
+SphereColor.Color.G = rnd() + 0.1;
+SphereColor.Color.B = rnd() + 0.1;]]>
+              </Expression>
+            </ZExpression>
+          </OnSpawn>
+          <OnRemove>
+            <ZExpression Comment="Delete rigid body and shape" Expression="zbtDeleteRigidBody(SphereId);"/>
+          </OnRemove>
+        </Model>
+      </Children>
+    </Group>
+  </Content>
+</ZApplication>
