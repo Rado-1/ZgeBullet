@@ -94,8 +94,8 @@ int zbtAddChildShape(int compoundId, int childId, float x, float y, float z,
 int zbtRemoveChildShape(int compoundId, int childId) {}
 
 int zbtCreateHeightfieldTerrainShape(xptr heightfieldData, int dataType,
-  int width, int length, float minHeight, float maxHeight, int upAxis,
-  int bFlipQuadEdges) {}
+  int width, int length, float heightScale, float minHeight, float maxHeight,
+  int upAxis, int bFlipQuadEdges, int bDiamondSubdivision) {}
 
 int zbtCreateConvexHullShape(xptr points, int numPoints) {}
 
