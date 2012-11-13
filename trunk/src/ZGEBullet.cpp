@@ -277,13 +277,13 @@ export int zbtRemoveChildShape(int compoundId, int childId)
 }
 
 export int zbtCreateHeightfieldTerrainShape(void *heightfieldData, int dataType, int width, int length,
-	float minHeight, float maxHeight, int upAxis, int bFlipQuadEdges)
+	float heightScale, float minHeight, float maxHeight, int upAxis, int bFlipQuadEdges, int bDiamondSubdivision)
 {
 	try
 	{
 		btHeightfieldTerrainShape* hf = new btHeightfieldTerrainShape(width, length, heightfieldData,
-			0.f, minHeight, maxHeight, upAxis, (dataType == 0 ? PHY_FLOAT : PHY_INTEGER), INT_TO_BOOL(bFlipQuadEdges));
-		hf->setUseDiamondSubdivision(true);
+			heightScale, minHeight, maxHeight, upAxis, (dataType == 0 ? PHY_FLOAT : PHY_INTEGER), INT_TO_BOOL(bFlipQuadEdges));
+		hf->setUseDiamondSubdivision(INT_TO_BOOL(bDiamondSubdivision));
 		ADD_TO_LIST(gCollisionShapeList, hf)
 	} catch (...) {return ERROR;}
 }
