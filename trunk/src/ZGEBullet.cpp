@@ -292,7 +292,7 @@ export int zbtCreateConvexHullShape(float *points, int numPoints)
 {
 	try
 	{
-		ADD_TO_LIST(gCollisionShapeList, new btConvexHullShape(points, numPoints))
+		ADD_TO_LIST(gCollisionShapeList, new btConvexHullShape(points, numPoints, 12)) // 12 = 3 * sizeof(float)
 	} catch (...) {return ERROR;}
 
 }
