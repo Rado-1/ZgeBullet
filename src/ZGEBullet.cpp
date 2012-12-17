@@ -1,4 +1,4 @@
-/*
+ /*
 ZGEBullet Library
 Copyright (c) 2012 Radovan Cervenka
 
@@ -292,7 +292,7 @@ export int zbtCreateConvexHullShape(float *points, int numPoints)
 {
 	try
 	{
-		ADD_TO_LIST(gCollisionShapeList, new btConvexHullShape(points, numPoints, 12)) // 12 = 3 * sizeof(float)
+		ADD_TO_LIST(gCollisionShapeList, new btConvexHullShape(points, numPoints, 3 * sizeof(float)))
 	} catch (...) {return ERROR;}
 
 }
