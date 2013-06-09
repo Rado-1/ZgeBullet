@@ -103,14 +103,14 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\bullet-2.80-rev2531\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BulletDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsManaged>false</CompileAsManaged>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletDynamics.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\LinearMath.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletCollision.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <AdditionalDependencies>$(BulletDir)\lib\BulletDynamics_vs2010.lib;$(BulletDir)\lib\LinearMath_vs2010.lib;$(BulletDir)\lib\BulletCollision_vs2010.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -119,13 +119,13 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\bullet-2.80-rev2531\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BulletDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsManaged>false</CompileAsManaged>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletDynamics.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\LinearMath.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletCollision.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(BulletDir)\lib\BulletDynamics_vs2010_x64_release.lib;$(BulletDir)\lib\LinearMath_vs2010_x64_release.lib;$(BulletDir)\lib\BulletCollision_vs2010_x64_release.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -134,7 +134,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\bullet-2.80-rev2531\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BulletDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAsManaged>false</CompileAsManaged>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -144,11 +144,11 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletDynamics.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\LinearMath.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletCollision.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <OptimizeReferences>true</OptimizeReferences>
       <AssemblyDebug>false</AssemblyDebug>
+      <AdditionalDependencies>$(BulletDir)\lib\BulletDynamics_vs2010.lib;$(BulletDir)\lib\LinearMath_vs2010.lib;$(BulletDir)\lib\BulletCollision_vs2010.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -156,7 +156,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\bullet-2.80-rev2531\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(BulletDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <CompileAsManaged>false</CompileAsManaged>
       <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -166,7 +166,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>false</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletDynamics_x64.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\LinearMath_x64.lib;$(ProjectDir)..\bullet-2.80-rev2531\lib\BulletCollision_x64.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(BulletDir)\lib\BulletDynamics_vs2010_x64_release.lib;$(BulletDir)\lib\LinearMath_vs2010_x64_release.lib;$(BulletDir)\lib\BulletCollision_vs2010_x64_release.lib</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <OptimizeReferences>true</OptimizeReferences>
