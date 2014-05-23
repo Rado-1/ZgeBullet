@@ -91,7 +91,8 @@ btDiscreteDynamicsWorld* gWorld;
 btTriangleMesh* gTmpTriangleMesh = NULL;
 btVector3 gRayTestHitPoint;
 btVector3 gRayTestHitNormal;
-//btVehicleRaycaster* gVehicleRaycaster = NULL;
+btVehicleRaycaster* gVehicleRaycaster = NULL;
+btRaycastVehicle::btVehicleTuning gTuning;
 
 // Global lists
 btAlignedObjectArray<btCollisionShape*> gCollisionShapeList;
@@ -103,37 +104,6 @@ btAlignedObjectArray<btTypedConstraint*> gConstraintList;
 export int zbtDeleteRigidBody(int id);
 //export int zbtDeleteGhostObject(int ghostObjectId);
 export int zbtDeleteConstraint(int id);
-
-// Utilities
-
-float getRotationXFromMatrix(const btMatrix3x3* matrix)
-{
-	if(matrix->getRow(2).x()< +0.999)
-		if(matrix->getRow(2).x() > -0.999)
-			return -atan2(-matrix->getRow(2).y(),matrix->getRow(2).z())/SIMD_2_PI;
-		else
-			return atan2(matrix->getRow(0).y(),matrix->getRow(1).y())/SIMD_2_PI;
-	else
-		return -atan2(matrix->getRow(0).y(),matrix->getRow(1).y())/SIMD_2_PI;
-}
-
-float getRotationYFromMatrix(const btMatrix3x3* matrix)
-{
-	if(matrix->getRow(2).x()< +0.999)
-		if(matrix->getRow(2).x() > -0.999)
-			return -asin(matrix->getRow(2).x())/SIMD_2_PI;
-		else
-			return 0.25;
-	else
-		return -0.25;
-}
-
-float getRotationZFromMatrix(const btMatrix3x3* matrix)
-{
-	if(matrix->getRow(2).x()< 0.999 && matrix->getRow(2).x() > -0.999)
-		return -atan2(-matrix->getRow(1).x(), matrix->getRow(0).x())/SIMD_2_PI;
-	return 0;
-}
 
 // World
 
@@ -383,8 +353,7 @@ export int zbtAddRigidBody(float mass, int shapeId, float x, float y, float z, f
 	btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI), btVector3(x, y, z)));
     btVector3 inertia(0, 0, 0);
 	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, shape, shapeId)
-	if(mass < 0.f) mass = NULL; // mass < 0 - kinematic rigid body
-	else if(mass > 0.f) // mass == 0 - static rigid body
+	if(mass > 0.f) // mass == 0 - static rigid body
 	    shape->calculateLocalInertia(mass, inertia);
     btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(mass, motionState, shape, inertia);
     btRigidBody* rigidBody = new btRigidBody(rigidBodyCI);
@@ -797,42 +766,45 @@ export int zbtDeleteConstraint(int constraintId)
 }
 
 
-/* ***************************************************************************
-
 // Raycast vehicle
 
 export int zbtCreateRaycastVehicle(int rigidBodyId, int rightIndex, int upIndex, int forwardIndex)
 {
 	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, carChassis, rigidBodyId)
 
-	btRaycastVehicle::btVehicleTuning tuning; //unused in Bullet 2.79
 	if(!gVehicleRaycaster) gVehicleRaycaster = new btDefaultVehicleRaycaster(gWorld);
-	btRaycastVehicle* rv = new btRaycastVehicle(tuning, carChassis, gVehicleRaycaster);
+	btRaycastVehicle* rv = new btRaycastVehicle(gTuning, carChassis, gVehicleRaycaster);
 	rv->setCoordinateSystem(rightIndex, upIndex, forwardIndex);
 	gWorld->addVehicle(rv);
-	carChassis->setActivationState(DISABLE_DEACTIVATION); //necessary?
+	//carChassis->setActivationState(DISABLE_DEACTIVATION); //not necessary
 	ADD_TO_LIST(gConstraintList, (btTypedConstraint*) rv)
 }
 
-export int zbtAddWheel(int vehicleId, float connectionPointX, float connectionPointY, float connectionPointZ,
-	float directionX, float directionY, float directionZ, float wheelAxleX, float wheelAxleY, float wheelAxleZ,
-	float wheelRadius, float suspensionRestLength, float suspensionStiffness,
-	float suspensionCompression, float suspensionDamping, float maxSuspensionTravelCm, float frictionSlip,
-	float maxSuspensionForce, float rollInfluence, int bIsFrontWheel)
+export int zbtSetVehicleTunning(float suspensionStiffness, float suspensionCompression,
+	float suspensionDamping, float maxSuspensionTravelCm, float frictionSlip,
+	float maxSuspensionForce)
+{
+	gTuning.m_suspensionStiffness = suspensionStiffness;
+	gTuning.m_suspensionCompression = suspensionCompression;
+	gTuning.m_suspensionDamping = suspensionDamping;
+	gTuning.m_maxSuspensionTravelCm = maxSuspensionTravelCm;
+	gTuning.m_frictionSlip = frictionSlip;
+	gTuning.m_maxSuspensionForce = maxSuspensionForce;
+
+	return DONE;
+}
+
+export int zbtAddWheel(int vehicleId,
+	float connectionPointX, float connectionPointY, float connectionPointZ,
+	float directionX, float directionY, float directionZ,
+	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
+	float wheelRadius, float suspensionRestLength, float rollInfluence, int bIsFrontWheel)
 {
 	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId)
 
-	btRaycastVehicle::btVehicleTuning tuning;
-	tuning.m_suspensionStiffness = suspensionStiffness;
-	tuning.m_suspensionCompression = suspensionCompression;
-	tuning.m_suspensionDamping = suspensionDamping;
-	tuning.m_maxSuspensionTravelCm = maxSuspensionTravelCm;
-	tuning.m_frictionSlip = frictionSlip;
-	tuning.m_maxSuspensionForce = maxSuspensionForce;
-
 	btWheelInfo wi = rv->addWheel(btVector3(connectionPointX, connectionPointY, connectionPointZ),
 		btVector3(directionX, directionY, directionZ), btVector3(wheelAxleX, wheelAxleY, wheelAxleZ),
-		suspensionRestLength, wheelRadius, tuning, INT_TO_BOOL(bIsFrontWheel));
+		suspensionRestLength, wheelRadius, gTuning, INT_TO_BOOL(bIsFrontWheel));
 
 	wi.m_rollInfluence = rollInfluence;
 
@@ -917,6 +889,8 @@ export int zbtDeleteRaycastVehicle(int vehicleId)
 	return DONE;
 }
 
+
+/* ***************************************************************************
 // Ghost object
 
 // TODO !!! WORKING HERE !!!
@@ -994,15 +968,12 @@ export int zbtSetPosition(int collisionObjectId, float x, float y, float z)
 export int zbtGetRotation(int collisionObjectId, float &rx, float &ry, float &rz)
 {
 	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId)
-	/*co->getWorldTransform().getBasis().getEulerZYX(rz, ry, rx);
+
+	co->getWorldTransform().getBasis().getEulerZYX(rz, ry, rx);
 	rx /= SIMD_2_PI;
 	ry /= SIMD_2_PI;
-	rz /= SIMD_2_PI;*/
+	rz /= SIMD_2_PI;
 
-	btMatrix3x3 ma = co->getWorldTransform().getBasis();
-	rx = getRotationXFromMatrix(&ma);
-	ry = getRotationYFromMatrix(&ma);
-	rz = getRotationZFromMatrix(&ma);
 	return DONE;
 }
 

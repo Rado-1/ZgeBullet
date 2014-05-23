@@ -4,13 +4,13 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := ZGEBullet
 
-MY_BULLET_PATH := bullet-2.80-rev2531/src
+MY_BULLET_PATH := bullet-2.82-r2704/src
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(MY_BULLET_PATH)
 LOCAL_CPPFLAGS += -fexceptions -frtti
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -ldl -lm -lstdc++
 
 # uncomment for ARMv7-A
-#LOCAL_CFLAGS := -march=armv7-a -mfloat-abi=softfp
+LOCAL_CFLAGS := -march=armv7-a -mfloat-abi=softfp
 
 TARGET_PLATFORM := android-8
 
@@ -34,6 +34,7 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCollisionObject.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCollisionWorld.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCompoundCollisionAlgorithm.cpp\
+    $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCompoundCompoundCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btConvex2dConvex2dAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btConvexConcaveCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btConvexConvexAlgorithm.cpp\
@@ -41,6 +42,7 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btEmptyCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btGhostObject.cpp\
+    $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btHashedSimplePairCache.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btInternalEdgeUtility.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btManifoldResult.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btSimulationIslandManager.cpp\
@@ -128,6 +130,8 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/LinearMath/btConvexHull.cpp\
     $(MY_BULLET_PATH)/LinearMath/btConvexHullComputer.cpp\
     $(MY_BULLET_PATH)/LinearMath/btGeometryUtil.cpp\
-    $(MY_BULLET_PATH)/LinearMath/btQuickprof.cpp
+    $(MY_BULLET_PATH)/LinearMath/btQuickprof.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btRaycastVehicle.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btWheelInfo.cpp
 
 include $(BUILD_SHARED_LIBRARY)
