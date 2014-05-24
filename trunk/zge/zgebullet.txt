@@ -10,53 +10,35 @@
 
 // Global constants
 
-// boolean
-const int FALSE = 0;
-const int TRUE = 1;
-
-// rotation-related
-const float PIx2 = PI * 2; // 360 degrees
-const float PI2 = PI / 2; // 90 degrees
-const float PI3 = PI / 3; // 60 degrees
-const float PI4 = PI / 4; // 45 degrees
-const float PI6 = PI / 6; // 30 degrees
-const float ROT360 = 1.0; // 360 degrees
-const float ROT180 = 0.5; // 180 degrees
-const float ROT120 = 0.3333; // 120 degrees
-const float ROT90 = 0.25; // 90 degrees
-const float ROT60 = 0.1666; // 60 degrees
-const float ROT45 = 0.125; // 45 degrees
-const float ROT30 = 0.0833; // 30 degrees
-
 // triangle mesh types
-const int CONVEX_HULL_MESH = 1;
-const int CONCAVE_STATIC_MESH = 2;
-const int CONCAVE_DEFORMABLE_MESH = 3;
+const int ZBT_CONVEX_HULL_MESH = 1;
+const int ZBT_CONCAVE_STATIC_MESH = 2;
+const int ZBT_CONCAVE_DEFORMABLE_MESH = 3;
 
 // data types for heightfield data
-const int FLOAT = 0;
-const int INTEGER = 1;
+const int ZBT_FLOAT = 0;
+const int ZBT_INTEGER = 1;
 
 // activation states
-const int ACTIVE_TAG = 1;
-const int DISABLE_DEACTIVATION = 4;
-const int DISABLE_SIMULATION = 5;
-const int ISLAND_SLEEPING = 2;
-const int WANTS_DEACTIVATION = 3;
+const int ZBT_ACTIVE_TAG = 1;
+const int ZBT_DISABLE_DEACTIVATION = 4;
+const int ZBT_DISABLE_SIMULATION = 5;
+const int ZBT_ISLAND_SLEEPING = 2;
+const int ZBT_WANTS_DEACTIVATION = 3;
 
 // limit default values
-const float DEFAULT_HINGE_SOFTNESS = 0.9;
-const float DEFAULT_HINGE_BIAS_FACTOR = 0.3;
-const float DEFAULT_HINGE_RELAXATION_FACTOR = 1.0;
-const float DEFAULT_CONE_TWIST_SOFTNESS = 0.8;
-const float DEFAULT_CONE_TWIST_BIAS_FACTOR = 0.3;
-const float DEFAULT_CONE_TWIST_RELAXATION_FACTOR = 1.0;
-const int AXIS_X_LINEAR = 0;
-const int AXIS_Y_LINEAR = 1;
-const int AXIS_Z_LINEAR = 2;
-const int AXIS_X_ANGULAR = 3;
-const int AXIS_Y_ANGULAR = 4;
-const int AXIS_Z_ANGULAR = 5;
+const float ZBT_DEFAULT_HINGE_SOFTNESS = 0.9;
+const float ZBT_DEFAULT_HINGE_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_HINGE_RELAXATION_FACTOR = 1.0;
+const float ZBT_DEFAULT_CONE_TWIST_SOFTNESS = 0.8;
+const float ZBT_DEFAULT_CONE_TWIST_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_CONE_TWIST_RELAXATION_FACTOR = 1.0;
+const int ZBT_AXIS_X_LINEAR = 0;
+const int ZBT_AXIS_Y_LINEAR = 1;
+const int ZBT_AXIS_Z_LINEAR = 2;
+const int ZBT_AXIS_X_ANGULAR = 3;
+const int ZBT_AXIS_Y_ANGULAR = 4;
+const int ZBT_AXIS_Z_ANGULAR = 5;
 
 
 // World
