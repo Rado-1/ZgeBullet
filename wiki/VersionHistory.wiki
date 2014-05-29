@@ -9,7 +9,7 @@ Added:
 Changed:
  * Updated to Bullet 2.82 (rev.2704)
  * ZGEBullet renamed to !ZgeBullet.
- * Removed boolean and goniometric constants from ZGE library.
+ * Removed boolean and goniometric constants from ZGE external library.
  * Demos updated to the latest changes and ZGE language updates.
 
 <wiki:comment>
