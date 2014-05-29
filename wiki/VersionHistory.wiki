@@ -7,6 +7,7 @@ Added:
  * Added demo #3 for raycast vehicle.
 
 Changed:
+ * Updated to Bullet 2.82 (r2704)
  * ZGEBullet renamed to !ZgeBullet.
  * Removed boolean and goniometric constants from ZGE library.
  * Demos updated to the latest changes and ZGE language updates.
