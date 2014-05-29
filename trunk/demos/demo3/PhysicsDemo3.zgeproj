@@ -1,0 +1,793 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<ZApplication Name="App" Comment="ZgeBullet demo #3. Created by Rado1" Caption="Physics Demo 3" AmbientLightColor="0.502 0.502 0.502 1" ScreenMode="0" CameraPosition="0 14.4632 -25" CameraRotation="0.06 0.5 0" LightPosition="0 30 0" ViewportRatio="3" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo3">
+  <OnLoaded>
+    <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
+      <Source>
+<![CDATA[/*
+  Adapter to the ZgeBullet Library, a wrapper for the Bullet Physics Library.
+  http://bulletphysics.org
+
+  Download Windows DLL and Android shared library from
+  http://code.google.com/p/zgebullet/downloads
+
+  Copyright (c) 2012-2014 Radovan Cervenka
+*/
+
+// Global constants
+
+// triangle mesh types
+const int ZBT_CONVEX_HULL_MESH = 1;
+const int ZBT_CONCAVE_STATIC_MESH = 2;
+const int ZBT_CONCAVE_DEFORMABLE_MESH = 3;
+
+// data types for heightfield data
+const int ZBT_FLOAT = 0;
+const int ZBT_INTEGER = 1;
+
+// activation states
+const int ZBT_ACTIVE_TAG = 1;
+const int ZBT_DISABLE_DEACTIVATION = 4;
+const int ZBT_DISABLE_SIMULATION = 5;
+const int ZBT_ISLAND_SLEEPING = 2;
+const int ZBT_WANTS_DEACTIVATION = 3;
+
+// limit default values
+const float ZBT_DEFAULT_HINGE_SOFTNESS = 0.9;
+const float ZBT_DEFAULT_HINGE_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_HINGE_RELAXATION_FACTOR = 1.0;
+const float ZBT_DEFAULT_CONE_TWIST_SOFTNESS = 0.8;
+const float ZBT_DEFAULT_CONE_TWIST_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_CONE_TWIST_RELAXATION_FACTOR = 1.0;
+const int ZBT_AXIS_X_LINEAR = 0;
+const int ZBT_AXIS_Y_LINEAR = 1;
+const int ZBT_AXIS_Z_LINEAR = 2;
+const int ZBT_AXIS_X_ANGULAR = 3;
+const int ZBT_AXIS_Y_ANGULAR = 4;
+const int ZBT_AXIS_Z_ANGULAR = 5;
+
+
+// World
+
+int zbtCreateWorld() {}
+
+int zbtDestroyWorld() {}
+
+int zbtSetWorldGravity(float x, float y, float z) {}
+
+int zbtStepSimulation(float timeStep, int maxSubSteps, float fixedTimeStep) {}
+
+// Collision shapes
+
+int zbtCreateStaticPlaneShape(float normalX, float normalY, float normalZ,
+	float planeConstant) {}
+
+int zbtCreateBoxShape(float x, float y, float z) {}
+
+int zbtCreateSphereShape(float radius) {}
+
+int zbtCreateScalableSphereShape(float radius) {}
+
+int zbtCreateConeShape(float radius, float height) {}
+
+int zbtCreateCylinderShape(float radius, float height) {}
+
+int zbtCreateCapsuleShape(float radius, float height) {}
+
+int zbtCreateCompoundShape() {}
+
+int zbtAddChildShape(int compoundId, int childId, float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+int zbtRemoveChildShape(int compoundId, int childId) {}
+
+int zbtCreateHeightfieldTerrainShape(xptr heightfieldData, int dataType,
+	int width, int length, float heightScale, float minHeight, float maxHeight,
+	int upAxis, int bFlipQuadEdges, int bDiamondSubdivision) {}
+
+int zbtCreateConvexHullShape(xptr points, int numPoints) {}
+
+int zbtCreateMultiSphereShape(xptr positions, xptr radiuses, int num) {}
+
+int zbtStartTriangleMeshShape() {}
+
+int zbtAddTriangle(float x1,float y1,float z1,
+	float x2,float y2,float z2,float x3,float y3,float z3) {}
+
+int zbtFinishTriangleMeshShape(int meshType) {}
+
+int zbtSetShapeLocalScaling(int shapeId, float x, float y, float z) {}
+
+int zbtSetShapeMargin(int shapeId, float margin) {}
+
+int zbtDeleteShape(int shapeId) {}
+
+int zbtDeleteAllShapes() {}
+
+// Rigid bodies
+
+int zbtAddRigidBody(float mass, int shapeId, float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+int zbtDeleteRigidBody(int rigidBodyId) {}
+
+int zbtSetMass(int rigidBodyId, float mass) {}
+
+int zbtSetDamping(int rigidBodyId, float linDamping, float angDamping) {}
+
+int zbtSetLinearFactor(int rigidBodyId, float x, float y, float z) {}
+
+int zbtSetAngularFactor(int rigidBodyId, float x, float y, float z) {}
+
+int zbtSetGravity(int rigidBodyId, float x, float y, float z) {}
+
+int zbtGetLinearVelocity(int rigidBodyId, ref float x, ref float y, ref float z) {}
+
+int zbtSetLinearVelocity(int rigidBodyId, float x, float y, float z) {}
+
+int zbtGetAngularVelocity(int rigidBodyId, ref float x, ref float y, ref float z) {}
+
+int zbtSetAngularVelocity(int rigidBodyId, float x, float y, float z) {}
+
+int zbtApplyCentralImpulse(int rigidBodyId, float x, float y, float z) {}
+
+int zbtApplyTorqueImpulse(int rigidBodyId, float rx, float ry, float rz) {}
+
+int zbtApplyImpulse(int rigidBodyId, float x, float y, float z,
+	float relX, float relY, float relZ) {}
+
+// Constraints and limits
+
+int zbtAreConnected(int rigidBodyAId, int rigidBodyBId) {}
+
+int zbtAddPoint2PointConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz, int bDisableCollision) {}
+
+int zbtAddPoint2PointConstraint1(int rigidBodyId,
+	float pivotX, float pivotY, float pivotZ, int bDisableCollision) {}
+
+int zbtAddHingeConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz, int bDisableCollision) {}
+
+int zbtAddHingeConstraint1(int rigidBodyId,
+	float pivotX, float pivotY, float pivotZ,
+	float axisX, float axisY, float axisZ, int bDisableCollision) {}
+
+int zbtSetHingeLimits(int constraintId, float low, float high,
+	float softness, float biasFactor, float relaxationFactor) {}
+
+int zbtEnableHingeAngularMotor(int constraintId, int bEnableMotor,
+	float targetVelocity, float maxMotorImpulse) {}
+
+int zbtAddConeTwistConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bDisableCollision) {}
+
+int zbtAddConeTwistConstraint1(int rigidBodyId,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ, int bDisableCollision) {}
+
+int zbtSetConeTwistLimits(int constraintId,
+	float swingX, float swingY, float swingZ,
+	float softness, float biasFactor, float relaxationFactor) {}
+
+int zbtAddSliderConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bUseLinearReferenceFrameA,
+	int bDisableCollision) {}
+
+int zbtSetSliderLimits(int constraintId, float linLower, float linUpper,
+	float angLower, float angUpper) {}
+
+int zbtSetSliderSoftness(int constraintId, float dirLin, float dirAng,
+	float limLin, float limAng, float orthoLin, float orthoAng) {}
+
+int zbtSetSliderRestitution(int constraintId, float dirLin, float dirAng,
+	float limLin, float limAng, float orthoLin, float orthoAng) {}
+
+int zbtSetSliderDamping(int constraintId, float dirLin, float dirAng,
+	float limLin, float limAng, float orthoLin, float orthoAng) {}
+
+int zbtEnableSliderMotor(int constraintId,
+	int bEnableLinMotor, float targetLinVelocity, float maxLinForce,
+	int bEnableAngMotor, float targetAngVelocity, float maxAngForce) {}
+
+int zbtAddGeneric6DofConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision) {}
+
+int zbtSetGeneric6DofLimits(int constraintId, int axis, float lo, float hi) {}
+
+int zbtSetGeneric6DofLinearLimits(int constraintId,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ) {}
+
+int zbtSetGeneric6DofAngularLimits(int constraintId,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ) {}
+
+int zbtDeleteConstraint(int constraintId) {}
+
+// Raycast vehicle
+
+// use before zbtCreateRaycastVehicle or zbtAddWheel
+int zbtSetVehicleTunning(float suspStiffness, float suspCompression,
+	float suspDamping, float maxSuspTravelCm, float maxSuspForce,
+	float frictionSlip) {}
+
+int zbtCreateRaycastVehicle(int rigidBodyId,
+	int rightIndex, int upIndex, int forwardIndex) {}
+
+int zbtAddWheel(int vehicleId,
+	float connectionPointX, float connectionPointY, float connectionPointZ,
+	float directionX, float directionY, float directionZ,
+	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
+	float wheelRadius, float suspRestLength, int bIsFrontWheel) {}
+
+int zbtSetWheelIsFront(int vehicleId, int wheelId, int bIsFront) {}
+
+int zbtSetWheelRadius(int vehicleId, int wheelId, float radius) {}
+
+int zbtSetWheelEngineForce(int vehicleId, int wheelId, float engineForce) {}
+
+int zbtSetWheelBreakAmount(int vehicleId, int wheelId, float brakeAmount) {}
+
+int zbtSetWheelRollInfluence(int vehicleId, int wheelId, float rollInfluence) {}
+
+int zbtSetWheelFrictionSlip(int vehicleId, int wheelId, float frictionSlip) {}
+
+int zbtSetWheelSuspRestLength(int vehicleId, int wheelId, float suspRestLength) {}
+
+int zbtSetWheelMaxSuspTravel(int vehicleId, int wheelId, float maxSuspTravel) {}
+
+int zbtSetWheelSuspStiffness(int vehicleId, int wheelId, float suspStiffness) {}
+
+int zbtSetWheelDampingCompression(int vehicleId, int wheelId, float dampingCompression) {}
+
+int zbtSetWheelDampingRelaxation(int vehicleId, int wheelId, float dampingRelaxation) {}
+
+int zbtSetVehicleSteeringValue(int vehicleId, int wheelId, float steering) {}
+
+int zbtSetVehicleEngineForce(int vehicleId, int wheelId, float force) {}
+
+int zbtSetVehicleBrake(int vehicleId, int wheelId, float brake) {}
+
+int zbtSetVehiclePitchControl(int vehicleId, float pitch) {}
+
+int zbtResetVehicleSusp(int vehicleId) {}
+
+float zbtGetVehicleCurrentSpeed(int vehicleId) {}
+
+int zbtGetWheelPosition(int vehicleId, int wheelId, ref float x, ref float y, ref float z) {}
+
+int zbtGetWheelRotation(int vehicleId, int wheelId, ref float rx, ref float ry, ref float rz) {}
+int zbtGetWheelPosRot(int vehicleId, int wheelId,
+	ref float x, ref float y, ref float z, ref float rx, ref float ry, ref float rz) {}
+
+int zbtDeleteRaycastVehicle(int vehicleId) {}
+
+// Collision objects (in general)
+
+int zbtSetFriction(int collisionObjectId, float friction) {}
+
+int zbtSetRestitution(int collisionObjectId, float restitution) {}
+
+int zbtSetHitFraction(int collisionObjectId, float hitFraction) {}
+
+int zbtGetPosition(int collisionObjectId, ref float x, ref float y, ref float z) {}
+
+int zbtSetPosition(int collisionObjectId, float x, float y, float z) {}
+
+int zbtGetRotation(int collisionObjectId, ref float rx, ref float ry, ref float rz) {}
+
+int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {}
+
+int zbtGetPosRot(int collisionObjectId, ref float x, ref float y, ref float z,
+	ref float rx, ref float ry, ref float rz) {}
+
+// Activation and deactivation
+
+int zbtIsActive(int collisionObjectId) {}
+
+int zbtActivate(int collisionObjectId, int bForceActivation) {}
+
+int zbtSetActivationState(int collisionObjectId, int newState) {}
+
+int zbtSetDeactivationTime(int collisionObjectId, float time) {}
+
+int zbtSetDeactivationThresholds(int rigidBodyId, float linear, float angular) {}
+
+// Collision detection
+
+int zbtGetCollisionNum() {}
+
+int zbtGetCollisionObjects(int index, ref int collisionObject1,
+  ref int collisionObject2) {}
+
+int zbtGetCollisionOfNum(int collisionObjectId){}
+
+int zbtIsCollidedWith(int collisionObjectId1, int collisionObjectId2) {}
+
+// Raycasting
+
+int zbtRayTest(float fromX, float fromY, float fromZ,
+  float toX, float toY, float toZ) {}
+
+int zbtGetRayTestHitPoint(ref float x, ref float y, ref float z) {}
+
+int zbtGetRayTestHitNormal(ref float x, ref float y, ref float z) {}]]>
+      </Source>
+    </ZExternalLibrary>
+    <ZLibrary Comment="Globals">
+      <Source>
+<![CDATA[// Global constants
+
+// boolean
+const int FALSE = 0;
+const int TRUE = 1;
+
+// vehicle control
+const float ENGINE_FORCE = 8.0;
+const float BREAKING_FORCE = 0.5;
+const float SUSP_STIFFNESS = 20.0;
+
+// Global variables
+
+// terrain array
+float[10,10] Terrain;
+
+// shape IDs
+int ChassisShapeId;
+int SphereShapeId;
+
+// vehicle control
+float Force;
+float Break;]]>
+      </Source>
+    </ZLibrary>
+    <ZExpression Comment="Init">
+      <Expression>
+<![CDATA[// init random seed
+setRandomSeed(getSystemTime());
+
+// init physical world
+zbtCreateWorld();
+zbtSetWorldGravity(0, -10, 0);
+
+// create terrain
+@RefreshContent(Component: TerrainMesh);
+int sh = zbtCreateHeightfieldTerrainShape(Terrain, ZBT_FLOAT, 10, 10, 0, -2, 2, ZBT_AXIS_Y_LINEAR, FALSE, FALSE);
+zbtSetShapeLocalScaling(sh, 9, 10, 9);
+int rb = zbtAddRigidBody(0, sh, 0, 0, 0, 0, 0, 0);
+zbtSetFriction(rb, 0.5);
+
+// create shapes
+ChassisShapeId = zbtCreateCompoundShape();
+zbtAddChildShape(ChassisShapeId, zbtCreateBoxShape(1, 0.5, 2), 0,0,0, 0,0,0);
+zbtAddChildShape(ChassisShapeId, zbtCreateBoxShape(1, 0.3, 1), 0,0.8,-0.58, 0,0,0);
+
+SphereShapeId = zbtCreateSphereShape(2);]]>
+      </Expression>
+    </ZExpression>
+    <ZExpression Name="InitScene">
+      <Expression>
+<![CDATA[@RemoveAllModels(OfType: CarModel);
+@RefreshContent(Component: TerrainMesh);
+createModel(CarModel);
+
+for(int i = 0; i < 10; ++i) createModel(SphereModel);]]>
+      </Expression>
+    </ZExpression>
+  </OnLoaded>
+  <OnClose>
+    <ZExpression>
+      <Expression>
+<![CDATA[// destroy physical world, collision shapes and height lists
+zbtDestroyWorld();
+zbtDeleteAllShapes();]]>
+      </Expression>
+    </ZExpression>
+  </OnClose>
+  <OnUpdate>
+    <ZExpression Comment="Update simulation">
+      <Expression>
+<![CDATA[// simulation step
+float t = App.DeltaTime;
+zbtStepSimulation(t, 1, t);]]>
+      </Expression>
+    </ZExpression>
+    <Condition Comment="Andorid?" Expression="return ANDROID;">
+      <OnTrue>
+        <ZExpression Comment="Reset scene on double-touch">
+          <Expression>
+<![CDATA[if(touchGetCount() == 2)
+  @CallComponent(Component: InitScene);]]>
+          </Expression>
+        </ZExpression>
+      </OnTrue>
+      <OnFalse>
+        <KeyPress Comment="RMB" Keys="}" RepeatDelay="1">
+          <OnPressed>
+            <CallComponent Component="InitScene"/>
+          </OnPressed>
+        </KeyPress>
+      </OnFalse>
+    </Condition>
+  </OnUpdate>
+  <OnRender>
+    <RenderTransformGroup Comment="Sky" Scale="150 100 150" Translate="0 15 0">
+      <Children>
+        <UseMaterial Material="SkyMaterial"/>
+        <RenderMesh Mesh="SphereMesh"/>
+      </Children>
+    </RenderTransformGroup>
+    <RenderTransformGroup Comment="Terrain" Scale="40.5 40.5 10" Translate="0 -0.1 0" Rotate="-0.25 -0.25 0">
+      <Children>
+        <UseMaterial Material="TerrainMaterial"/>
+        <RenderMesh Mesh="TerrainMesh"/>
+      </Children>
+    </RenderTransformGroup>
+    <UseMaterial Material="DigitsMaterial"/>
+    <RenderText Comment="FPS" TextFloatRef="App FpsCounter" X="-0.97" Y="0.9" Scale="0.5" Align="1"/>
+    <RenderText Text="::::::::::::::::::::::::::::::::::::::" Y="0.3" Scale="0.5" StretchY="0.5"/>
+    <RenderText Text="::::::::::::::::::::::::::::::::::::::" Y="-0.6" Scale="0.5" StretchY="0.5"/>
+  </OnRender>
+  <Content>
+    <Group Comment="Artwork">
+      <Children>
+        <Group Comment="Meshes">
+          <Children>
+            <Mesh Name="TerrainMesh">
+              <Producers>
+                <MeshBox XCount="8" YCount="8" Grid2DOnly="255"/>
+                <MeshExpression VertexColors="255">
+                  <Expression>
+<![CDATA[float h = noise3(this.V.X*2, this.V.Y*2, App.Time)*1.2;
+
+this.V.Z = h;
+this.C.R = h+0.5;
+this.C.G = (h+0.6)/2;
+Terrain[floor((this.V.X+1)*4.9), floor((this.V.Y+1)*4.9)] = h;]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="SphereMesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="12" Grid2DOnly="255"/>
+                <MeshExpression AutoNormals="0">
+                  <Expression>
+<![CDATA[//
+
+        float E, A, C, X, Y, Z;
+
+        // Convert range to radians
+
+        E = this.V.Y*PI; // Elevation
+        A = this.V.X*PI; // Azimuth
+
+        // Convert spherical coordinates into cartesian
+
+        C = cos(E);
+
+        X = sin(A)*C;
+        Y = sin(E);
+        Z = cos(A)*C;
+
+        // Assign coordinates
+
+        this.V.X = X;
+        this.V.Y = Y;
+        this.V.Z = Z;
+
+        this.N.X = X;
+        this.N.Y = Y;
+        this.N.Z = Z;]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="CarGlassMesh">
+              <Producers>
+                <MeshImport>
+                  <MeshData>
+<![CDATA[78DA358CB10D80300C044F494014691823135092D1A8580BD6601344006327C2D29FCE6FC9033060B36C8A59B36BB2F93A4EB99E1081DFCC5B62329E87758D31393A028E22AFEE3D5EFD5677DAA25624F088AFBF3C977C79B82DD3]]>
+                  </MeshData>
+                </MeshImport>
+                <MeshExpression Expression="this.N = this.V;" AutoNormals="0"/>
+              </Producers>
+            </Mesh>
+            <Mesh Name="WheelMesh">
+              <Producers>
+                <MeshBox Scale="1 0.5 1" XCount="18" YCount="2" Grid2DOnly="255"/>
+                <MeshExpression AutoNormals="0">
+                  <Expression>
+<![CDATA[float k, x = this.V.X, y = this.V.Y, z = this.V.Z;
+if(abs(y) < 0.5){
+  k = x * PI;
+  this.V.Y = sin(k);
+  this.V.Z = cos(k);
+} else {
+  this.V.Y = 0;
+  this.V.Z = 0;
+}
+
+this.V.X = y > 0 ? -0.3 : 0.3;
+
+this.N = this.V;]]>
+                  </Expression>
+                </MeshExpression>
+              </Producers>
+            </Mesh>
+            <Mesh Name="CarChassisMesh">
+              <Producers>
+                <MeshImport>
+                  <MeshData>
+<![CDATA[78DA354E316EC240109C23B609A123888E26F47C015ADE8052F280880FF0006A8AA4B0C43FA2E401E40FF900A24102DBD8939933F169C77B7333B33B02F0027F9B2F81EB5B35FF391C66E2E60073158DC0EB344AB11D18D7473324B07F33325F1F496B7CDB0E8C2D233FAD718E5D3C2DC7C6DF0F31775C8E5729B998183F77EFE53F2E263D3C2141C58229021EF1A0D901256F3A25BBEA80547C0F9E7C65CD04FDD89317DD6AFD0B5672273A9DE8845242CC09B8B1A133B3985ED3D9DEBDABC49AEDDC8221EA339CF9AC97A1721AF94AF194BBD2948699F2DBBEA38D10BB54CA4433BC43C01FBD04A51C]]>
+                  </MeshData>
+                </MeshImport>
+                <MeshExpression Expression="this.N = this.V;" AutoNormals="0"/>
+              </Producers>
+            </Mesh>
+          </Children>
+        </Group>
+        <Group Comment="Bitmaps and Materials">
+          <Children>
+            <Material Name="ObjectMaterial" WireframeWidth="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1"/>
+            <Bitmap Name="WheelBitmap">
+              <Producers>
+                <BitmapRect UseBlankSource="255" Color="0.502 0.251 0 1" Size="-1 -1 0 1"/>
+              </Producers>
+            </Bitmap>
+            <Material Name="WheelMaterial" WireframeWidth="1" Color="1 1 1 0.5">
+              <Textures>
+                <MaterialTexture Texture="WheelBitmap" TextureScale="20 20 1" TextureWrapMode="1" TexCoords="1"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="DigitsBitmap" Width="4" Height="1">
+              <Producers>
+                <BitmapFromFile Comment="Imported from num.png">
+                  <BitmapFile>
+<![CDATA[78DAEDDC79D4D553DB07F0C7637ACDF390324F9106995294246408498A142953138952D2AA0C85A594A18426140A49A68A64CA98644844927956661EEF67DDD77A7EEB38F3B9EF3BCFFBBCCBFEE3AC739FFBF7DBBFBDAFEB7B7DAFEFB5F73EE71FFFF8BBFDDDFE6E7F6AFFFCE73FD75A6BAD75D65967CD35D75C659555FECA47AFBEFAEA55AB56AD55AB568D1A35AA54A9B2E1861BAEBBEEBAFF53D6D6296B6BAFBDB6F7ABAEBAEA5F3CB0FFAF8D19D97CB5D5562B9F3DE37668F15A8E1EF89143B9758D35D6F8BFE050E3D974D34DF7DE7BEF366DDA74ECD8F198638ED9638F3D80D0E7E5B00CB36CBDF5D6DB6DB7DD061B6C20A68AB9659B6DB6193468D0AC59B31E7CF0C161C386F5EDDBB74B972EAD5BB76ED5AAD519679CD1A953A776EDDA9D78E289071D74D09E7BEEA96776CBD35B6AAB44C094DA276C6CB1C516BBEEBA6BEDDAB5EB963583F7E7461B6D54AA613D34D869CB2DB7AC56AD9A6EBD2FDFECF4B3FEFAEBA39AC30F3FFC80030ED878E38D8BF1516A438F3BEDB4D361871D76F2C927376DDA14540C093B15391E66D979E79D4F3AE9246E6DDEBC39B37028BA2B751895D56069B7DD76BBE0820BA64D9BB668D1A20F3EF8E095575EB9F3CE3B7D026F0656526FEBADB79E495D7DF5D5C3870F6FD9B2255F17340B3008BD79F3E6FDFAEBAFBFFDF6DB4F3FFDB462C58ACF3EFBECADB7DE5AB870E1871F7EB86CD9B2F7DE7BCF9FCF3CF34C04C87EFBEDC70B69FD60B3ADB6DAAA51A346471F7DF491471E79F0C107039EB82E37CB25D8C3547BEDB5D7F1C71FDFA2450BFE6293FC1D32E9F6DB6FEFE22BAEB862E2C4890F3CF0C0A365EDE1871FBEE38E3B18D6208B041EE3B872FFFDF717FEDDBB770FC30E1932044D153392ACE8AD57AFDED8B1635F78E105E301C2CD36DBACC84E625EDC7AD34D37CD9D3BF7EDB7DFF63A65CA946BAFBDB67DFBF6D5AB571705053B319D6EDDBACD9F3F9F5BBD72E8A851A37CD2B06143715DBE845211F0D7A95367C488114B962CF9F9E79FFF55D67EFFFD7720FCF8E38FEFBFFFFE030F3CB09849250D93B3ED279F7CF2D5575F0928A6CEC3D5898BE1F9CD37DFFC23A5C530FEF5E7E61301B274E9D28B2EBA08B0D33AD961871DFAF7EFFFE4934FBEF6DA6B0B162C78EEB9E7000F0205C2E69B6F5E8E5C96F095381A3D7AF4C2B276DB6DB7E5B789F942264818C337DF7CC3AAC6FCFBBF1BC37EF4D1473367CEECDAB5AB018BCD3C8F46F25246CF9E3D67CC98F1EEBBEF7EFEF9E7CB972F470EDF7DF71D7F4D9E3C597E94A64B028C3E8F38E288575F7D15DBFCF8E38F4F3FFD74B366CD7C58CC8DC210F900AD61985478E4975F7EF1277682221714EC0AC8070F1E8CDFC22086F1C30F3FB0C99C3973AEBAEA2A83A184D9FC2F003FE38BD96BAEB906C706D8388BCB9825FEFCE28B2FC4261714C470D2F874EAD4A966E4F677DE79E7B8E38EA3F40AE27F9F7DF6E111B704F80D43F471F1A79F7E6A3CE1F4EFBFFFDEEBB7DF7EFBFAEBAFF7E8D163934D3649ED042065E4679F7DD6BDA911240C1F7BECB10B2FBC50CA2E9F5539543641747AD621D23BFDF4D349BB5CD703E459679D65EE614338610DC3361153E0EEB0B378179BE450AE51995183060DC68D1BC70E3016D3893E63767A13EC8404462D3E04B812293DF4D043E1236422BED28C999504482660C06C31062081E12FBFFC523FBF953518BEF5D65B692A1ECF331E394B669C3E7D3A3F4A012C1386D598488ABFF4D24B6BD6AC9999DF2BBDF11475CD119CC2A4EC397BF6EC8B2FBEF8EEBBEF06BC1812E1D1A74F1F315BA48513FCEB1065996941FC930104E1EDB7DF6EFAE1DCAFBFFE7AC28409279C7002E7F6EAD50B5D08D2A143877A1D3060001D220BA7C186B9A8B5279E78C2A3A105CD7A4D821A1A69064AB5F8404E050C9F522F3CAE3706016FA6CB753DB164D66FBCF14610A3B81E33660CABCA59D75D779D08E5F1880BD83329B8CA1C154E6013641B7873B140360BDDBEFFFEFBBAF5214399ACE8169E058D9C2AE7102C8C6118C3D0ED0D37DCC06B79C4985B68A473CF3D973C8E5C06F977DD7557DBB66D99C2EC7C1E18365A7FD28A79ECEC41AC07E1A29B94E2D0FBEEBB6FF1E2C55C663CA02828E82B9DACD410308CDD77DFDDA3C13E2897EC170E4A574A8CFE9764E37341B1EFBEFBE6CFD459F10F2AB05A8C6B54644A6F8A34D8DBEDA40BD5014B6CC5F85BFCBB61AAACCB5351445F7EF9E5A402DD2584511C2124A622C9B2B0FFCA02E5A83D1568A82FC2B320FE239C894054462C89620F45D14A21B63DF6D863EFBDF75EB419A846110060E469F033F1638E39E6F9E79F8F285694891D263AEAA8A3DAB56B07B1A6134901806FBEF966662F3E056060C2496046B5258228BA3C886531700515F9D7130D3EE179E51E56E9D7AF9F89446878A3C0299850C2B01ECAB9184039F3F8E38F87B362BE48CFA4CAAD5A8B217F7E64C68007656BD89881234C4A604A4F66048DD4D1F9E79FCF832B89FF03331E7DC925977856487D3243C55752F52D421505D5AA55D355952A55B6DD765BCA7FE4C89141A1E648A376E9D265CB2DB72C75A941F93070E040A417F83FFBECB3F3E03FD482A740B557F229791C8F9B913CA50A8E6882E1175F7C51C19E6625A89076C31A88481C8199AEC4BE2BA53F8A4E3A08C8F15D91764EACBDCB2EBB281FE0396E17A4222E8F6111A070365A665458A9D792A54B10A5A2A5EF204CAE57D2A2D6E28DAC077AB251A34648438D1359E0E5975FCE344B2536364429414452A1D2036B45B81939CA1A3F7EBC4C6D463C0545BC590CC3C0BFAA39F02FB88AF70BCCA802A64C9912F2C043959CDC54110620A1F56922AC1AB527463DF5D453B1534935A3D83FEFBCF3E8DB22F19F9FF418A469D3A60ACF4876C6A61090DA52AFE11DC30E44792EED217DA40206E4D03EF785ADA427EE2B1E720293C7DDAE7F714D0E89F13CF8DF7BEFBD694B0366438975C71D774C5BF4A354E7CD9B172A88A2CE1F50B9EA2C21F0C8238F047898E5CA2BAF34CE9584FFC68D1BCB38A19389D2430E3924754D433CAAF290B0E9D0BD0F3FFCB0902FA67E6419E11F5219DF366FDEBC98B585D4CA282ACD6000662C750136D3AA3235B11A6185F158D864F38C2AD89B561126B1761A4B76C1C615C47F92509403A119E84F8A2895303D51E0276914CF2BEDD3C430B310483899AD78102797C496FC7BE699679219C1D80620E2F2E09F1A2793A0C568694B82302DA1B89D6241A4002360FBF6ED9BB6405770A746734B8F1E3D1438ECEC593367CEA4819390AF5CFC53E6E471627FBC9DABE803455AB175EBD6C540110BCD9A352B788082A2578BC73F331A8622F78B2FBE60010CA00064D80AEE8C602761F5D4534F4585C54783060DCA4A77B1D4AF2E73C1F5D75F4FF374EAD4C9C44F39E5148A97D28EDBD511E817212B5BCAB7572EC430AAA8C4F0D0ABF051C32686D221334A85519AD16FCA679FA4F24FD84A068F514554A6E6888299514CA9A643194A8BDC9D8BDF600F0EA74F9F2E52E001BFEDB6DB6E694E4108022A56BD2414264ACD685995AA983AE2882330A457FA0AC90459C18FA740A6E1A9539282A872F1DFB973E7A54B9732DDF2E5CBC9516A390D09081006BEFEFAEB286A8A243D6E4214E5C37FF8E5F0C30F5FB06041F8450AC072151481E682CF7BF5EA05BAE09475BE895F147A63C68C7125EC4919B0B764C91279F0D34F3F8D55324184375C3364C8101CDEAC59B362F6F8B22A1095AFFE395AA2ECD0A183684A060CDB14B5A1C6120469C1FE69B24D5CB76FDF1EF239919B14C568B9F84DD8FAF5EB87A471BB39E6F12FFCD7A851433C46BDC01A34A40C92BA1B9E5A4EE6C17F308C729BE2222AF02A90CF9F3F9FA6EADEBDFBAEBBEE0A3F575F7D75EC0E484F3D7BF68C1B8B29A84B6AC3870F471DCCCBCBB7DC720BB4A75D2042D10E07B9061E7AF7EE5D30A305FEC9AA58B52807FEA330B9E79E7B82FA08541457BC5BF314FB2A5F02263FFE6311350ABD6413E18F8C16A5847E247A5DD5A953A7C8C5B1B40AB75FBF7E0C0BFF1075C61967247B0A817F356FE05F9326248BB475450F55DDD0AE02138C99BD56AD5A45E64A9751AAF82D2A8810DB5B6DB555563B47BD2CE4151A61400E6AD2A409CC8862C8240CAA56AD4AF3C4469249414E265A74CE11089FDEF0C4D8418B66FC8B162D321ED956E12FA8A39FFEFDFB27E6AA5CFC1B43C84BD43162C40873CF5CC76ED9B2A5888E2508E5182314346FC5F1CF44E79C734ED01ACFBEF2CA2B6DDAB449B8B11C2DD6D2274C9810E5248F935555AA54C9857F880AFC7BA5C4B0048FC762635A20F09A6AE5E0830F2EC74A3583AB40F50F065C4F68A5E25FC88F1D3B36061C11B76CD9B2A143878AB5E4592193EEBBEF3E7E740116AD57AF5EF191286DB17328166C336DDAB458D5C94ADAC40979C3A13CE27AC35671C4792D71D1ABACE18DD839359DAC6AD927543779C09EA1F0211C87787AB2C7F1D24B2FC14FAC57C4CA40B26B5CB9F80F951E8576D66C05EAF884328C5562C548DDBA750B9A37F44F45F04F02A9CD3D2E3628D9447A927F8BF1AC31C70A611C19F568A0326C4C1BAB85DC475C9D7CF2C9C4437EFC872C91F5A4F5CB2EBB8C73832E62EB130070DD8B2FBEC874C9BA592A60080C58CA4517FEB5FFFEFBDF7FFFFDB1234CDEA09A5489CB1DA88FE84A622DF6CB881C52393658B59D76DA69E2C4899126948DEDDAB5CB3AAF5C6350E9CC9E3D9B7383678E3DF6D85C5293F1B960E4C891A11992D3295E99C53821593F06294708A5CCF54F2652354897B110E12E26A57984156A5AB87061B83BB6CB63E11D53D142490F7F545ED39B7A3004AD91E7DAB060DE193366C40916351A971583FF0AF23FB71A4CC78E1D29C3D8587FF3CD37F31F39482C2C1D2BEB4E3BED347282A256B7F6E8D1C314A8B8202E93BDF6DA6BE9CCACEB09A9F877FDD34F3F8D01C0921D54E5B15AC83B3073E185179E70C209FE2BCBA7958DFC6EFCD475D3A64D3D48A2D9E2CFCD20F7D8630F0298BE3524E885E1B4DC1AEB33009FA6BBC4DDD4A9538F3EFA68FA8DFC501C611BF1E8BF4078C9259714AF13D85927D83B0029BFE4DFE5111A8A743E8DADE7B416E731FC578C346AD428D3E9D24DD7AE5D15927164486577E289273214F36EB3CD36DE633CF5456A9F2B15FF73E6CC892C9F67978A140F996476A68696F39F1F002A1A156C2A82FF44005065B1E50421D42FCCE45F04A39110FB934F3E090968CABD722B1B4689673C3E1F376E9C2C9FEBF45A1AFE7505963E8761DA23A84FBA1C3C7830CBB8382BBDD36F049B824E2A376C75D6D03F370108F04ACE38EF4AFC77EBD62D0D78681C99C7FA732C4187C831117065E1D1A347CB0522917C0D6166BEF254493AC143613ED6751959C5018AB93C2BDCD4FBB24C56FC237FF3359138059A59476CBEF9E683060D0A878A62655DB217EF62D1C177A1A0923E5DA62A5949F8577D1BB3F7B23CA7675DFB32E544859A78FBF6EDF3A7D728196259B522F84F54D0A38F3E8A5542219F7DF6D9C8364F21CCC24815C813A19EAAD8C166D2A4490AC63C5A3DB5FE4DC5BFE2EEC61B6F8CEA4F4CC929B978527E14A7123A58866EFC3E5BF379005B62820498494BAC2C492A93F4714A93407AE08107E48BA819E3CCA47EA22A09EE7DE28927A48392D609B119AEA6E274A82B92A076EDDAB9825A32756590898B63613CB1B03F49650585BA266B0F02537886B00739D19D5AD371AB0BCE3BEFBCA87CA34FAE1C387060E2DCCAD5FF93274F8E35164424F4B2AEEDC33FED1DBBC0469E6BD93C153F8AC1B06705F11F8B96D8293689C4E09429537215688966A09A706608DAE4A8643480BCF5D65B29963CBB783A6FD8B021D8C7065C82FFC40E3AC4035DBA74C9B5D2CE0210155B45795690A2FA236FC88F030F3C30D3445120C4294D6E5266B66DDB56BD4C1306212487C3BD3730E2013E4BDDD78E851D3931A6B678F1624FC9A4382C4DC88D1F3F3ECE6CC4E310827CA10A9616633086CA62AD5AB5CABA5891E03FB61BCC2ECD1171CA22C443984862527F25AB91958BFF24A17B959133D77FD2F09FE7B2B0242B794565C9FABF4490BAAD5310F07A6084E44B8EB14914DB2E7A033CF9378FBE75AF0A6BC080017216912C0CB16BEC7925F5233D59B366CD5C41E489F5EAD58B5D3F5E48F05FAD5AB551A34689201F9A14A4E55A8F8A0C121BEBB1AC4780C50AD24F650D7A7D224885B33CB2E79E7B663D2D1CC7F960CC43014622804CE4AC28303BB980F251B14A55F2F84D37DDD4AC59B352BF0890ACAB1B46EC04C559D0CC2382CC02AE0AC028C73CB779F3E6342111C8BFE222544D6C43882616CEAC133127D7A0743D984E5660B0B62C16F88FB3C7124A92802A17FFE4446C7FC7F106A197498CEAA36417C6D464EA4CFCC7E125BCDAA44913388140AC15C99120548D16F3F599A819F5A07455DC2507DA43A0921CA13067CD9AD5A041835CE8750BF8F10B0F820A48C8A777DC7107ED14E731585EB2BBFCF2CB392E6B29C102EC806C455C2AFFF35DFFFEFD89100AA157AF5EBBEFBE7BAE31A4F2BFC7895918562CE3B17EFDFAA94F85F0B9E79E2BE11A61FE6F98328867C5A1230053801BB6BCB3F3CE3BBB1720E556B156B76EDD1D77DCB1A4EF28650AADF8F29D6855FB649EA666166971E1C285E185D4F33F302C7F2967621B5A27C2E4D0430FCD1C8FE9F4ECD9334A7E93624F9E4A0D58EF4947FC1FCB32718EA875EBD6C9DA69E5E29F508FEDEFD8684ED36369877942FF649E92825B98EFDCB9339B486AC3860D3BFDF4D385701C2B9A3B772E48175C1B8F059F4E9D3AE1346A07C829FFB88B191913E124676BF39F3D4E5B8114981237E694AF43EC199571366DDA342B6072E11FDA77D861079003B658F0C9C5B4FEE59A7BEFBD77C58A15716E04D4093923D9B0AC794360A41E0ACDB3452BD8CDDDC42153E8D5AF5F3FE128B71B55C57F10400FC2599D1E679B21F3E28B2F4EF3B2870A6AA29D015DE6E2E4FC4F9C68950EE278498036EB967D7C2D22A968F83AEDC8995B8E3BEEB8281E3DC865B2DB5E7BEDB592CEFF10EA01D438D3829AD2BEE4C2C2B27364BD38CCDFA64D9BB4308C3564E998595C2646162C5880ACBC2F1EFF71605ECD182A94684195410E2C4FF38B88649CFE55D256607C77A36BD7AEB1D113C7B97315B081FF505CA9F82FE971922641422AC7A23A762DF7D915304B9069D8175C7041F1DFD52DBE252B332106328FF704FF23C9E4585A9D3A7540370E076A7832D9ADC6519938092FE3A23844113BCEE434BFEBC4BFF4864865C6A4FE75998BF39CCAAB60232F870F1F9EAC6923F0546911F53883C7998138F59DCA3F89E4968B698C58230A8D11E32F89FFC92AB204F2A38C6261361402EE45A7E22BF69E6241A0D4A580B46FFAC4AA5AD683B5B9F8BFA456B56AD538375571FCCBC8A79E7A2AFD16DB4C7C2407253E8A6F6AB0469C532D3712744847BDFEFAEBA1E13D2EEDD46E54A6183E969BE40865149237185253BC03C6B469D3C247CB962DA307B2E668E2AD5BB76EB1050027A02EEE9478648FDEA88B975F7E3994AA7CE77DC78E1D2B5DF6A7AE96901CC18A71D6C8A48439F71927402AE4116F2CFE0B93D1A347673D616E84443BDA0FD996B4E2F11FC991EC8FD3BC714A59F54A2AD3968691E4298324E9F3ECD10825CE422692E9BA650D425C6F5E81EA6457E5BF02FF9029FD859A8A1500E2047199A30956AF5E9D07870C192227E6FA8E36D9C008A1BB3401C5206116EFE343F6417D73E6CC49CE03A409DDF83EC8A851A3E2B090790901D28E7DEEB9E79E49932619A1B1C572A8D23ED7E17FE6354E1565F4032142C0BD3A217B5410C997A305A3A2C94C57DEF7BF221FDD7DF7DD91B6C4A35141EC8811231879F0E0C1DEC7390D2169A6B459D61A244A002E501F25C7C64AC57FA4003551947B71BBD4A31A5291C5A27114D4596BABA4133EC5458AA60E1D3A28F01151F7EEDD493BE41F67AA63A333F3E7231207EDB3CF3E15D13FA9F867527E341200D3B357862215A80B8CC7F83EC9EFDF387863224015BB092C8001D0B5B2E2E69B6F5EBC78B1CC8B16203673E74B44487C679E792687F6E9D307A208BF2E658DD290DC7DA2C4F6DFF8B58AC07FD6F390E205AAE3AB19C9F98750B9F1058448FAA02277639B5C4E07211E84BA58358DD226560BA35B963747E364AB9507FE2405B46FDF1E47A54ECAFBD8A30925E38D4CC462B9F635223FD269BD7BF78E3336E5C07F384BB13376ECD8F8EA7D329E64A1DBE7D75C734DAE05D84822471E7924A8ABD4D09162C12D600F21C916B03FEFBCF34E0ECA1A442682A0D05154AFF145BF52A585118253F857E4E2B79E3D7BC2F080010308CE3163C690F43E4483405890E2625177E4C89111BF42809149116C937C0BDE536481CC8C26C6E35B3660C98FEC202A3F2B6BB80ECE7DA29358EC4D769DE2FB2069BBEDB1FF7BFEF9E70B939028993F56E34659DB4CF37FC3949BC42F39A152F6F4E0FCA07D0298C62327CAF11DD5F2D5FEC41B121002C9F67A12DA3E613A6E12237C9ADF4DF10D20BA42468B19B1D2E38F3F9E870AB2EEF9A2DF61C386796E2C2624E763796AEAD4A98D1A35CAB3D08700AFB8E28A089FCC1F0ED2A1B131BB217141AE83BE71EE227231223AE490434A3DDBC977EA8BF81E6B9811D8FCA9221656CC1284E94D648782E79A4871C3983163068025D34910689CC443D67D2B05146386D828BEC569931A356AA479DC9F3899E2F25F31C84466242A197CE9D2A56C357EFC785989170A429713A53F251E42A0368D9F29D08E6444F116F9B381951502E2BA5DBB7613264C50E0D30698D36066CF9E7DC30D37986CCD9A3519B698F1C44F695D76D965A249469E376F1EE1916BA53DCFA21FC971D65967893B0A533F14D192254BD00201967F8B07DDC9E908EAA3944644E9C4D4264F9E4C0E15FC61199D48643A212DC68D1B476397EA8BCD36DBAC6FDFBE7CFA61A1E61ADAA3E07256AC0F83967C1ABC9D347FCE9F3F9F6ECC6AE7F85A2E4EFEA8E80600D23D4ACCAA0F9902386BD7AE7DCA29A79061D20179C9AAA258E695A78AFF3DBAD8AC813D49BF458B162D5BB6049E8282702515020C459752CE12138E55D79BA3B195FAAB8C4280FAAD57AF9E4EBC7A5F8EDFDB891FA8341E3D184FE3C68DF556AB562D83CC6F5BB1434E28E51AFFB9E9C4D4100EDF15346F2CF51F70C001888843CBB1AFA40783D743E342CD35EACA624C14ABB8AD5AB582CC3E298DB2029EA88873ED2A3263E3A21B5BB99EEBF39C12D1ADEA7BFDB216D5B43FCBFD4BB671649D9DFF53BFFFF977FBAF684153F0BC694A4398B0F737724A6DFF0BB36EF1BA]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Font Name="DigitsFont" Bitmap="DigitsBitmap" FirstChar="4" CharPixelWidth="23" CharPixelHeight="32"/>
+            <Material Name="DigitsMaterial" Light="0" Blend="2" ZBuffer="0" Font="DigitsFont"/>
+            <Bitmap Name="MeshBitmap" Filter="2">
+              <Producers>
+                <BitmapRect UseBlankSource="1" Color="1 1 1 1" Size="-0.9 -0.9 0.9 0.9"/>
+              </Producers>
+            </Bitmap>
+            <Material Name="TerrainMaterial" WireframeWidth="1" Color="1 0.502 1 0.5" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
+              <Textures>
+                <MaterialTexture Texture="MeshBitmap" TextureScale="100 100 1" TextureWrapMode="1" TexCoords="1"/>
+              </Textures>
+            </Material>
+            <Material Name="SphereMaterial" WireframeWidth="1" Color="1 1 1 0.5" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1">
+              <Textures>
+                <MaterialTexture Texture="MeshBitmap" TextureScale="20 10 1" TextureWrapMode="1" TexCoords="1"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+              <Producers>
+                <BitmapFromFile Comment="Imported from SkyBitmap.png">
+                  <BitmapFile>
+<![CDATA[78DA95C2894E080000005091223942D17764342D96C958B54CA6C5B4328665D5328CD1CA18562BD3D4588C95B1B22C568B69B11AC6B05A1A53D362A1880E6749DFF0DE5E64D4FF48BA0C2FC72BECD268BC72D2C6E058BCCA2E598DE3FED935782D8EB711EBF0FA09BB0127E0441B9E8493C7ED46BC09A7D8C59BF196BF3615A7E1AD76D136BCFD8F4DC71938D32EDC8177FEB6BBF06EBCC786EDC559BFEC3E9C8D73EC825C9CF7D3EEC707F0413BFF103EFCC31EC147F1313B2F1F178CD9427C1C9FB0734FE253A3F6343E838B6C68312E19B1A5F82C3E67E794E1F3C3B61C57E00B36E422AEFC6E2FE1CBF88A9D7D15577DB3D5F81ABE6E67DDC03543B616DFC47536F816AEFF6A6FE33BB8C10635E2A62FF62EBE87EFDB99CDB865D03EC00F71AB0D6CC38F06EC63FC043FB5339EE1E79FED0BFC12B7DBE91DB8F3937D85BBF06B1BF006BFFD68BB710F7E67A7F5E2BE7EFB1E7FB05340E956F5]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Material Name="SkyMaterial" WireframeWidth="0" Light="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
+              <Textures>
+                <MaterialTexture Texture="SkyBitmap" TextureScale="1 2.17 0" TextureY="0.64" TexCoords="1"/>
+              </Textures>
+            </Material>
+          </Children>
+        </Group>
+      </Children>
+    </Group>
+    <Model Name="CarModel">
+      <Definitions>
+        <Variable Name="BodyId" Type="1"/>
+        <Variable Name="VehicleId" Type="1"/>
+      </Definitions>
+      <OnRender>
+        <UseMaterial Material="ObjectMaterial"/>
+        <RenderSetColor Color="0.4431 0.7216 1 1"/>
+        <RenderMesh Mesh="CarGlassMesh"/>
+        <RenderSetColor Color="0.4039 0.8078 0 1"/>
+        <RenderMesh Mesh="CarChassisMesh"/>
+      </OnRender>
+      <OnUpdate>
+        <ZExpression Comment="Update vehicle">
+          <Expression>
+<![CDATA[zbtGetPosRot(BodyId,
+  CurrentModel.Position.X,
+  CurrentModel.Position.Y,
+  CurrentModel.Position.Z,
+  CurrentModel.Rotation.X,
+  CurrentModel.Rotation.Y,
+  CurrentModel.Rotation.Z);
+
+// restart if fallen
+if(CurrentModel.Position.Y < -30) @CallComponent(Component: InitScene);
+
+// steering
+float s = 0 - App.MousePosition.X;
+int notTouched = ANDROID && touchGetCount() == 0;
+
+if(notTouched) s = 0;
+
+zbtSetVehicleSteeringValue(VehicleId, 0, s);
+zbtSetVehicleSteeringValue(VehicleId, 1, s);
+
+// set engine force and breaks by mouse Y position
+float y = App.MousePosition.Y;
+
+Break = y < -0.6 ? BREAKING_FORCE : 0.0;
+Force = y > 0.3 ? ENGINE_FORCE : 0.0;
+
+if(notTouched) Break = Force = 0.0;
+
+zbtSetVehicleEngineForce(VehicleId, 0, Force);
+zbtSetVehicleEngineForce(VehicleId, 1, Force);
+zbtSetVehicleEngineForce(VehicleId, 2, Force);
+zbtSetVehicleEngineForce(VehicleId, 3, Force);
+zbtSetVehicleBrake(VehicleId, 2, Break);
+zbtSetVehicleBrake(VehicleId, 3, Break);
+
+// update camera
+App.CameraPosition = CurrentModel.Position;
+App.CameraPosition.Y += 10;
+App.CameraPosition.Z -= 25;]]>
+          </Expression>
+        </ZExpression>
+      </OnUpdate>
+      <OnSpawn>
+        <ZExpression>
+          <Expression>
+<![CDATA[BodyId = zbtAddRigidBody(3.5, ChassisShapeId, 0,5,0,0,0,0);
+
+VehicleId = zbtCreateRaycastVehicle(BodyId, ZBT_AXIS_X_LINEAR, ZBT_AXIS_Y_LINEAR, ZBT_AXIS_Z_LINEAR);
+
+// add wheels
+WheelChassisId = VehicleId;
+
+// front right; id 0
+WheelId = zbtAddWheel(VehicleId,
+  -1.1, 0, 1.5, // connection point
+  0, -1, 0, // direction
+  -1, 0, 0, // axle
+  0.6, 0.8, TRUE); // radius, suspension length, is front?
+zbtSetWheelSuspStiffness(VehicleId, WheelId, SUSP_STIFFNESS);
+createModel(WheelModel);
+
+// front left; id 1
+WheelId = zbtAddWheel(VehicleId,
+  1.1, 0, 1.5, // connection point
+  0, -1, 0, // direction
+  -1, 0, 0, // axle
+  0.6, 0.8, TRUE); // radius, suspension length, is front?
+zbtSetWheelSuspStiffness(VehicleId, WheelId, SUSP_STIFFNESS);
+createModel(WheelModel);
+
+// rear right; id 2
+WheelId = zbtAddWheel(VehicleId,
+  -1.1, 0, -1.3, // connection point
+  0, -1, 0, // direction
+  -1, 0, 0, // axle
+  0.6, 0.8, TRUE); // radius, suspension length, is front?
+zbtSetWheelSuspStiffness(VehicleId, WheelId, SUSP_STIFFNESS);
+createModel(WheelModel);
+
+// rear left; id 3
+WheelId = zbtAddWheel(VehicleId,
+  1.1, 0, -1.3, // connection point
+  0, -1, 0, // direction
+  -1, 0, 0, // axle
+  0.6, 0.8, TRUE); // radius, suspension length, is front?
+zbtSetWheelSuspStiffness(VehicleId, WheelId, SUSP_STIFFNESS);
+createModel(WheelModel);]]>
+          </Expression>
+        </ZExpression>
+      </OnSpawn>
+      <OnRemove>
+        <ZExpression>
+          <Expression>
+<![CDATA[zbtDeleteRaycastVehicle(VehicleId);
+zbtDeleteRigidBody(BodyId);]]>
+          </Expression>
+        </ZExpression>
+      </OnRemove>
+    </Model>
+    <Model Name="WheelModel" Scale="0.8 0.6 0.6">
+      <Definitions>
+        <Variable Name="WheelId" Type="1"/>
+        <Variable Name="WheelChassisId" Type="1"/>
+      </Definitions>
+      <OnRender>
+        <UseMaterial Material="WheelMaterial"/>
+        <RenderMesh Mesh="WheelMesh"/>
+        <UseMaterial Material="ObjectMaterial"/>
+        <RenderSetColor Color="1 1 0 1"/>
+        <RenderTransformGroup Scale="1.1 0.8 0.8">
+          <Children>
+            <RenderMesh Mesh="WheelMesh"/>
+          </Children>
+        </RenderTransformGroup>
+      </OnRender>
+      <OnUpdate>
+        <ZExpression Comment="Update position and rotation">
+          <Expression>
+<![CDATA[zbtGetWheelPosRot(WheelChassisId, WheelId,
+  CurrentModel.Position.x,
+  CurrentModel.Position.Y,
+  CurrentModel.Position.Z,
+  CurrentModel.Rotation.X,
+  CurrentModel.Rotation.Y,
+  CurrentModel.Rotation.Z);]]>
+          </Expression>
+        </ZExpression>
+      </OnUpdate>
+    </Model>
+    <Model Name="SphereModel" Position="-33.7846 3.3394 11.3442" Scale="2 2 2" RenderOrder="1">
+      <Definitions>
+        <Variable Name="SphereId" Type="1"/>
+      </Definitions>
+      <OnRender>
+        <UseMaterial Material="SphereMaterial"/>
+        <RenderSetColor Name="SphereColor" Color="0.9404 0.2947 0.476 1"/>
+        <RenderMesh Mesh="SphereMesh"/>
+      </OnRender>
+      <OnUpdate>
+        <ZExpression Comment="Update position and rotation">
+          <Expression>
+<![CDATA[zbtGetPosRot(SphereId,
+  CurrentModel.Position.X,
+  CurrentModel.Position.Y,
+  CurrentModel.Position.Z,
+  CurrentModel.Rotation.X,
+  CurrentModel.Rotation.Y,
+  CurrentModel.Rotation.Z);]]>
+          </Expression>
+        </ZExpression>
+        <Condition Comment="Remove if too low" Expression="return CurrentModel.Position.Y &lt; -30;">
+          <OnTrue>
+            <RemoveModel/>
+          </OnTrue>
+        </Condition>
+      </OnUpdate>
+      <OnSpawn>
+        <ZExpression Comment="Init">
+          <Expression>
+<![CDATA[// create rigid body
+SphereId = zbtAddRigidBody(0.1, SphereShapeId, random(0,40), 20, random(0,40), 0, 0, 0);
+
+// set physical properties
+zbtSetDamping(SphereId, 0.1, 0.1);
+
+// set color
+SphereColor.Color.R = rnd() + 0.1;
+SphereColor.Color.G = rnd() + 0.1;
+SphereColor.Color.B = rnd() + 0.1;]]>
+          </Expression>
+        </ZExpression>
+      </OnSpawn>
+      <OnRemove>
+        <ZExpression Comment="Delete rigid body and shape" Expression="zbtDeleteRigidBody(SphereId);"/>
+      </OnRemove>
+    </Model>
+  </Content>
+</ZApplication>

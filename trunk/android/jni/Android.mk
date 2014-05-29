@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)/../..
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := ZGEBullet
+LOCAL_MODULE := ZgeBullet
 
 MY_BULLET_PATH := bullet-2.82-r2704/src
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(MY_BULLET_PATH)
@@ -15,7 +15,7 @@ LOCAL_CFLAGS := -march=armv7-a -mfloat-abi=softfp
 TARGET_PLATFORM := android-8
 
 LOCAL_SRC_FILES := \
-    src/ZGEBullet.cpp\
+    src/ZgeBullet.cpp\
     $(MY_BULLET_PATH)/BulletCollision/BroadphaseCollision/btAxisSweep3.cpp\
     $(MY_BULLET_PATH)/BulletCollision/BroadphaseCollision/btBroadphaseProxy.cpp\
     $(MY_BULLET_PATH)/BulletCollision/BroadphaseCollision/btCollisionAlgorithm.cpp\
