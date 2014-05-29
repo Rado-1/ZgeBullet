@@ -1,5 +1,5 @@
 /*
-  Adapter to the ZGEBullet Library, a wrapper for the Bullet Physics Library.
+  Adapter to the ZgeBullet Library, a wrapper for the Bullet Physics Library.
   http://bulletphysics.org
 
   Download Windows DLL and Android shared library from
@@ -215,38 +215,59 @@ int zbtDeleteConstraint(int constraintId) {}
 
 // Raycast vehicle
 
+// use before zbtCreateRaycastVehicle or zbtAddWheel
+int zbtSetVehicleTunning(float suspStiffness, float suspCompression,
+	float suspDamping, float maxSuspTravelCm, float maxSuspForce,
+	float frictionSlip) {}
+
 int zbtCreateRaycastVehicle(int rigidBodyId,
 	int rightIndex, int upIndex, int forwardIndex) {}
-
-int zbtSetVehicleTunning(float suspensionStiffness,
-	float suspensionCompression, float suspensionDamping,
-	float maxSuspensionTravelCm, float frictionSlip,
-	float maxSuspensionForce) {}
 
 int zbtAddWheel(int vehicleId,
 	float connectionPointX, float connectionPointY, float connectionPointZ,
 	float directionX, float directionY, float directionZ,
 	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
-	float wheelRadius, float suspensionRestLength, float rollInfluence,
-	int bIsFrontWheel) {}
+	float wheelRadius, float suspRestLength, int bIsFrontWheel) {}
 
-int zbtSetSteeringValue(int vehicleId, int wheelId, float steering) {}
+int zbtSetWheelIsFront(int vehicleId, int wheelId, int bIsFront) {}
 
-int zbtApplyEngineForce(int vehicleId, int wheelId, float force) {}
+int zbtSetWheelRadius(int vehicleId, int wheelId, float radius) {}
 
-int zbtSetBrake(int vehicleId, int wheelId, float brake) {}
+int zbtSetWheelEngineForce(int vehicleId, int wheelId, float engineForce) {}
 
-int zbtSetPitchControl(int vehicleId, float pitch) {}
+int zbtSetWheelBreakAmount(int vehicleId, int wheelId, float brakeAmount) {}
 
-int zbtUpdateWheelTransform(int vehicleId, int wheelId, int bInterpolatedTransform) {}
+int zbtSetWheelRollInfluence(int vehicleId, int wheelId, float rollInfluence) {}
 
-float zbtGetCurrentSpeed(int vehicleId) {}
+int zbtSetWheelFrictionSlip(int vehicleId, int wheelId, float frictionSlip) {}
 
-int zbtGetWheelPosition(int vehicleId, int wheelId,
-	ref float x, ref float y, ref float z) {}
+int zbtSetWheelSuspRestLength(int vehicleId, int wheelId, float suspRestLength) {}
 
-int zbtGetWheelRotation(int vehicleId, int wheelId,
-	ref float x, ref float y, ref float z) {}
+int zbtSetWheelMaxSuspTravel(int vehicleId, int wheelId, float maxSuspTravel) {}
+
+int zbtSetWheelSuspStiffness(int vehicleId, int wheelId, float suspStiffness) {}
+
+int zbtSetWheelDampingCompression(int vehicleId, int wheelId, float dampingCompression) {}
+
+int zbtSetWheelDampingRelaxation(int vehicleId, int wheelId, float dampingRelaxation) {}
+
+int zbtSetVehicleSteeringValue(int vehicleId, int wheelId, float steering) {}
+
+int zbtSetVehicleEngineForce(int vehicleId, int wheelId, float force) {}
+
+int zbtSetVehicleBrake(int vehicleId, int wheelId, float brake) {}
+
+int zbtSetVehiclePitchControl(int vehicleId, float pitch) {}
+
+int zbtResetVehicleSusp(int vehicleId) {}
+
+float zbtGetVehicleCurrentSpeed(int vehicleId) {}
+
+int zbtGetWheelPosition(int vehicleId, int wheelId, ref float x, ref float y, ref float z) {}
+
+int zbtGetWheelRotation(int vehicleId, int wheelId, ref float rx, ref float ry, ref float rz) {}
+int zbtGetWheelPosRot(int vehicleId, int wheelId,
+	ref float x, ref float y, ref float z, ref float rx, ref float ry, ref float rz) {}
 
 int zbtDeleteRaycastVehicle(int vehicleId) {}
 
@@ -256,7 +277,7 @@ int zbtSetFriction(int collisionObjectId, float friction) {}
 
 int zbtSetRestitution(int collisionObjectId, float restitution) {}
 
-int zbtSetHitFraction(int collisionObjectId, float hitFraction ) {}
+int zbtSetHitFraction(int collisionObjectId, float hitFraction) {}
 
 int zbtGetPosition(int collisionObjectId, ref float x, ref float y, ref float z) {}
 
@@ -265,6 +286,9 @@ int zbtSetPosition(int collisionObjectId, float x, float y, float z) {}
 int zbtGetRotation(int collisionObjectId, ref float rx, ref float ry, ref float rz) {}
 
 int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {}
+
+int zbtGetPosRot(int collisionObjectId, ref float x, ref float y, ref float z,
+	ref float rx, ref float ry, ref float rz) {}
 
 // Activation and deactivation
 

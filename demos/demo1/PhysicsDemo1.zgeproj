@@ -1,17 +1,371 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZGEBullet demo #1. Created by Rado1" Caption="Physics Demo1" CustomScreenWidth="800" CustomScreenHeight="480" CameraPosition="-44.7881 10 39.9252" CameraRotation="0 0.1341 0" CustomViewportRatio="1.6667" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
+<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" ScreenMode="0" CameraPosition="51.3401 10 31.0515" CameraRotation="0 2.8366 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
   <OnLoaded>
-    <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZGEBullet" CallingConvention="1" DefinitionsFile="zgebullet.txt">
-      <BeforeInitExp>
-<![CDATA[if(ANDROID){
-  this.ModuleName = "./libZGEBullet.so";
-  this.CallingConvention = 0;
-}]]>
-      </BeforeInitExp>
-    </ZExternalLibrary>
-    <ZLibrary Comment="Utils">
+    <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
-<![CDATA[// create standardized collision shape
+<![CDATA[/*
+  Adapter to the ZgeBullet Library, a wrapper for the Bullet Physics Library.
+  http://bulletphysics.org
+
+  Download Windows DLL and Android shared library from
+  http://code.google.com/p/zgebullet/downloads
+
+  Copyright (c) 2012-2014 Radovan Cervenka
+*/
+
+// Global constants
+
+// triangle mesh types
+const int ZBT_CONVEX_HULL_MESH = 1;
+const int ZBT_CONCAVE_STATIC_MESH = 2;
+const int ZBT_CONCAVE_DEFORMABLE_MESH = 3;
+
+// data types for heightfield data
+const int ZBT_FLOAT = 0;
+const int ZBT_INTEGER = 1;
+
+// activation states
+const int ZBT_ACTIVE_TAG = 1;
+const int ZBT_DISABLE_DEACTIVATION = 4;
+const int ZBT_DISABLE_SIMULATION = 5;
+const int ZBT_ISLAND_SLEEPING = 2;
+const int ZBT_WANTS_DEACTIVATION = 3;
+
+// limit default values
+const float ZBT_DEFAULT_HINGE_SOFTNESS = 0.9;
+const float ZBT_DEFAULT_HINGE_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_HINGE_RELAXATION_FACTOR = 1.0;
+const float ZBT_DEFAULT_CONE_TWIST_SOFTNESS = 0.8;
+const float ZBT_DEFAULT_CONE_TWIST_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_CONE_TWIST_RELAXATION_FACTOR = 1.0;
+const int ZBT_AXIS_X_LINEAR = 0;
+const int ZBT_AXIS_Y_LINEAR = 1;
+const int ZBT_AXIS_Z_LINEAR = 2;
+const int ZBT_AXIS_X_ANGULAR = 3;
+const int ZBT_AXIS_Y_ANGULAR = 4;
+const int ZBT_AXIS_Z_ANGULAR = 5;
+
+
+// World
+
+int zbtCreateWorld() {}
+
+int zbtDestroyWorld() {}
+
+int zbtSetWorldGravity(float x, float y, float z) {}
+
+int zbtStepSimulation(float timeStep, int maxSubSteps, float fixedTimeStep) {}
+
+// Collision shapes
+
+int zbtCreateStaticPlaneShape(float normalX, float normalY, float normalZ,
+	float planeConstant) {}
+
+int zbtCreateBoxShape(float x, float y, float z) {}
+
+int zbtCreateSphereShape(float radius) {}
+
+int zbtCreateScalableSphereShape(float radius) {}
+
+int zbtCreateConeShape(float radius, float height) {}
+
+int zbtCreateCylinderShape(float radius, float height) {}
+
+int zbtCreateCapsuleShape(float radius, float height) {}
+
+int zbtCreateCompoundShape() {}
+
+int zbtAddChildShape(int compoundId, int childId, float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+int zbtRemoveChildShape(int compoundId, int childId) {}
+
+int zbtCreateHeightfieldTerrainShape(xptr heightfieldData, int dataType,
+	int width, int length, float heightScale, float minHeight, float maxHeight,
+	int upAxis, int bFlipQuadEdges, int bDiamondSubdivision) {}
+
+int zbtCreateConvexHullShape(xptr points, int numPoints) {}
+
+int zbtCreateMultiSphereShape(xptr positions, xptr radiuses, int num) {}
+
+int zbtStartTriangleMeshShape() {}
+
+int zbtAddTriangle(float x1,float y1,float z1,
+	float x2,float y2,float z2,float x3,float y3,float z3) {}
+
+int zbtFinishTriangleMeshShape(int meshType) {}
+
+int zbtSetShapeLocalScaling(int shapeId, float x, float y, float z) {}
+
+int zbtSetShapeMargin(int shapeId, float margin) {}
+
+int zbtDeleteShape(int shapeId) {}
+
+int zbtDeleteAllShapes() {}
+
+// Rigid bodies
+
+int zbtAddRigidBody(float mass, int shapeId, float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+int zbtDeleteRigidBody(int rigidBodyId) {}
+
+int zbtSetMass(int rigidBodyId, float mass) {}
+
+int zbtSetDamping(int rigidBodyId, float linDamping, float angDamping) {}
+
+int zbtSetLinearFactor(int rigidBodyId, float x, float y, float z) {}
+
+int zbtSetAngularFactor(int rigidBodyId, float x, float y, float z) {}
+
+int zbtSetGravity(int rigidBodyId, float x, float y, float z) {}
+
+int zbtGetLinearVelocity(int rigidBodyId, ref float x, ref float y, ref float z) {}
+
+int zbtSetLinearVelocity(int rigidBodyId, float x, float y, float z) {}
+
+int zbtGetAngularVelocity(int rigidBodyId, ref float x, ref float y, ref float z) {}
+
+int zbtSetAngularVelocity(int rigidBodyId, float x, float y, float z) {}
+
+int zbtApplyCentralImpulse(int rigidBodyId, float x, float y, float z) {}
+
+int zbtApplyTorqueImpulse(int rigidBodyId, float rx, float ry, float rz) {}
+
+int zbtApplyImpulse(int rigidBodyId, float x, float y, float z,
+	float relX, float relY, float relZ) {}
+
+// Constraints and limits
+
+int zbtAreConnected(int rigidBodyAId, int rigidBodyBId) {}
+
+int zbtAddPoint2PointConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz, int bDisableCollision) {}
+
+int zbtAddPoint2PointConstraint1(int rigidBodyId,
+	float pivotX, float pivotY, float pivotZ, int bDisableCollision) {}
+
+int zbtAddHingeConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz, int bDisableCollision) {}
+
+int zbtAddHingeConstraint1(int rigidBodyId,
+	float pivotX, float pivotY, float pivotZ,
+	float axisX, float axisY, float axisZ, int bDisableCollision) {}
+
+int zbtSetHingeLimits(int constraintId, float low, float high,
+	float softness, float biasFactor, float relaxationFactor) {}
+
+int zbtEnableHingeAngularMotor(int constraintId, int bEnableMotor,
+	float targetVelocity, float maxMotorImpulse) {}
+
+int zbtAddConeTwistConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bDisableCollision) {}
+
+int zbtAddConeTwistConstraint1(int rigidBodyId,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ, int bDisableCollision) {}
+
+int zbtSetConeTwistLimits(int constraintId,
+	float swingX, float swingY, float swingZ,
+	float softness, float biasFactor, float relaxationFactor) {}
+
+int zbtAddSliderConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bUseLinearReferenceFrameA,
+	int bDisableCollision) {}
+
+int zbtSetSliderLimits(int constraintId, float linLower, float linUpper,
+	float angLower, float angUpper) {}
+
+int zbtSetSliderSoftness(int constraintId, float dirLin, float dirAng,
+	float limLin, float limAng, float orthoLin, float orthoAng) {}
+
+int zbtSetSliderRestitution(int constraintId, float dirLin, float dirAng,
+	float limLin, float limAng, float orthoLin, float orthoAng) {}
+
+int zbtSetSliderDamping(int constraintId, float dirLin, float dirAng,
+	float limLin, float limAng, float orthoLin, float orthoAng) {}
+
+int zbtEnableSliderMotor(int constraintId,
+	int bEnableLinMotor, float targetLinVelocity, float maxLinForce,
+	int bEnableAngMotor, float targetAngVelocity, float maxAngForce) {}
+
+int zbtAddGeneric6DofConstraint(int rigidBodyAId, int rigidBodyBId,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision) {}
+
+int zbtSetGeneric6DofLimits(int constraintId, int axis, float lo, float hi) {}
+
+int zbtSetGeneric6DofLinearLimits(int constraintId,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ) {}
+
+int zbtSetGeneric6DofAngularLimits(int constraintId,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ) {}
+
+int zbtDeleteConstraint(int constraintId) {}
+
+// Raycast vehicle
+
+// use before zbtCreateRaycastVehicle or zbtAddWheel
+int zbtSetVehicleTunning(float suspStiffness, float suspCompression,
+	float suspDamping, float maxSuspTravelCm, float maxSuspForce,
+	float frictionSlip) {}
+
+int zbtCreateRaycastVehicle(int rigidBodyId,
+	int rightIndex, int upIndex, int forwardIndex) {}
+
+int zbtAddWheel(int vehicleId,
+	float connectionPointX, float connectionPointY, float connectionPointZ,
+	float directionX, float directionY, float directionZ,
+	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
+	float wheelRadius, float suspRestLength, int bIsFrontWheel) {}
+
+int zbtSetWheelIsFront(int vehicleId, int wheelId, int bIsFront) {}
+
+int zbtSetWheelRadius(int vehicleId, int wheelId, float radius) {}
+
+int zbtSetWheelEngineForce(int vehicleId, int wheelId, float engineForce) {}
+
+int zbtSetWheelBreakAmount(int vehicleId, int wheelId, float brakeAmount) {}
+
+int zbtSetWheelRollInfluence(int vehicleId, int wheelId, float rollInfluence) {}
+
+int zbtSetWheelFrictionSlip(int vehicleId, int wheelId, float frictionSlip) {}
+
+int zbtSetWheelSuspRestLength(int vehicleId, int wheelId, float suspRestLength) {}
+
+int zbtSetWheelMaxSuspTravel(int vehicleId, int wheelId, float maxSuspTravel) {}
+
+int zbtSetWheelSuspStiffness(int vehicleId, int wheelId, float suspStiffness) {}
+
+int zbtSetWheelDampingCompression(int vehicleId, int wheelId, float dampingCompression) {}
+
+int zbtSetWheelDampingRelaxation(int vehicleId, int wheelId, float dampingRelaxation) {}
+
+int zbtSetVehicleSteeringValue(int vehicleId, int wheelId, float steering) {}
+
+int zbtSetVehicleEngineForce(int vehicleId, int wheelId, float force) {}
+
+int zbtSetVehicleBrake(int vehicleId, int wheelId, float brake) {}
+
+int zbtSetVehiclePitchControl(int vehicleId, float pitch) {}
+
+int zbtResetVehicleSusp(int vehicleId) {}
+
+float zbtGetVehicleCurrentSpeed(int vehicleId) {}
+
+int zbtGetWheelPosition(int vehicleId, int wheelId, ref float x, ref float y, ref float z) {}
+
+int zbtGetWheelRotation(int vehicleId, int wheelId, ref float rx, ref float ry, ref float rz) {}
+int zbtGetWheelPosRot(int vehicleId, int wheelId,
+	ref float x, ref float y, ref float z, ref float rx, ref float ry, ref float rz) {}
+
+int zbtDeleteRaycastVehicle(int vehicleId) {}
+
+// Collision objects (in general)
+
+int zbtSetFriction(int collisionObjectId, float friction) {}
+
+int zbtSetRestitution(int collisionObjectId, float restitution) {}
+
+int zbtSetHitFraction(int collisionObjectId, float hitFraction) {}
+
+int zbtGetPosition(int collisionObjectId, ref float x, ref float y, ref float z) {}
+
+int zbtSetPosition(int collisionObjectId, float x, float y, float z) {}
+
+int zbtGetRotation(int collisionObjectId, ref float rx, ref float ry, ref float rz) {}
+
+int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {}
+
+int zbtGetPosRot(int collisionObjectId, ref float x, ref float y, ref float z,
+	ref float rx, ref float ry, ref float rz) {}
+
+// Activation and deactivation
+
+int zbtIsActive(int collisionObjectId) {}
+
+int zbtActivate(int collisionObjectId, int bForceActivation) {}
+
+int zbtSetActivationState(int collisionObjectId, int newState) {}
+
+int zbtSetDeactivationTime(int collisionObjectId, float time) {}
+
+int zbtSetDeactivationThresholds(int rigidBodyId, float linear, float angular) {}
+
+// Collision detection
+
+int zbtGetCollisionNum() {}
+
+int zbtGetCollisionObjects(int index, ref int collisionObject1,
+  ref int collisionObject2) {}
+
+int zbtGetCollisionOfNum(int collisionObjectId){}
+
+int zbtIsCollidedWith(int collisionObjectId1, int collisionObjectId2) {}
+
+// Raycasting
+
+int zbtRayTest(float fromX, float fromY, float fromZ,
+  float toX, float toY, float toZ) {}
+
+int zbtGetRayTestHitPoint(ref float x, ref float y, ref float z) {}
+
+int zbtGetRayTestHitNormal(ref float x, ref float y, ref float z) {}]]>
+      </Source>
+    </ZExternalLibrary>
+    <ZLibrary Comment="Globals">
+      <Source>
+<![CDATA[// CONSTANTS
+
+// boolean
+const int FALSE = 0;
+const int TRUE = 1;
+
+// goniometric
+const float PIx2 = PI * 2.0;
+const float PI2 = PI / 2.0;
+const float ROT90 = 0.25;
+const float ROT45 = 0.125;
+
+// application-specific
+const int NUMBER_OF_SCENES = 4;
+const float DEFAULT_DAMPING = 0.1;
+
+// VARIABLES
+
+int Scene;
+int IsClicked;
+int WasClicked;
+
+// object creation property setters
+int ObjectType;
+vec3 ObjectPosition;
+vec3 ObjectRotation;
+vec3 ObjectScale;
+vec3 ObjectColor;
+float ObjectMass;
+float ObjectLinearDamping;
+float ObjectAngularDamping;
+int ObjectActivationState;
+
+// FUNCTIONS
+
+// create standardized collision shape
 int createCollisionShape(int type){
 
   switch(type){
@@ -63,7 +417,8 @@ int rb = zbtAddRigidBody(0, sh, 0, -1, 0, 0, 0, 0);
 zbtSetFriction(rb, 1);
 
 // init scene
-Scene = -1;]]>
+Scene = -1;
+WasClicked = FALSE;]]>
       </Expression>
     </ZExpression>
     <CallComponent Component="InitScene"/>
@@ -88,21 +443,35 @@ zbtStepSimulation(t, 1, t);
 t = App.Time / 30;
 App.CameraPosition.X = cos(t * PIx2) * 60;
 App.CameraPosition.Z = sin(t * PIx2) * 60;
-App.CameraRotation.Y = t - ROT90;]]>
+App.CameraRotation.Y = t - ROT90;
+
+//reset click flag
+IsClicked = FALSE;]]>
       </Expression>
     </ZExpression>
     <KeyPress Comment="LMB press or touch" Keys="{">
       <OnPressed>
-        <RemoveAllModels/>
+        <ZExpression Expression="IsClicked = TRUE;"/>
+      </OnPressed>
+    </KeyPress>
+    <Condition>
+      <Expression>
+<![CDATA[int r = WasClicked && ! IsClicked;
+WasClicked = IsClicked;
+return r;]]>
+      </Expression>
+      <OnTrue>
         <ZExpression Name="InitScene">
           <Expression>
-<![CDATA[int shooting = FALSE;
+<![CDATA[@RemoveAllModels();
+
+int shooting = FALSE;
 
 // next scene
 if(++Scene == NUMBER_OF_SCENES) Scene = 0;
 
 // set comon properties
-ObjectScaleX = ObjectScaleY = ObjectScaleZ = 1;
+ObjectScale = vector3(1, 1, 1);
 
 // build a brick formation
 switch(Scene){
@@ -113,24 +482,20 @@ switch(Scene){
     ObjectMass = 0.1;
     ObjectActivationState = FALSE;
     ObjectLinearDamping = ObjectAngularDamping = DEFAULT_DAMPING;
-    ObjectRotationX = ObjectRotationY = ObjectRotationZ = 0;
+    ObjectRotation = vector3(0, 0, 0);
 
     for(int i = 1; i < 6; i++)
       for(int j = 0; j < 5; j++)
         for(int k = 0; k < 5; k++){
 
           // set position
-          ObjectPositionX = j * 3 - 6;
-          ObjectPositionY = i * 4 - 2;
-          ObjectPositionZ = k * 3 - 6;
+          ObjectPosition = vector3(j * 3 - 6, i * 4 - 2, k * 3 - 6);
 
           // set color
-          ObjectColorR = 0.5 + 0.2 * i;
-          ObjectColorG = 0.3 + 0.1 * j;
-          ObjectColorB = 1 - 0.2 * k;
+          ObjectColor = vector3(0.5 + 0.2 * i, 0.3 + 0.1 * j, 1 - 0.2 * k);
 
           // spawn
-          createModel(BrickModel);
+          createModel(ObjectModel);
         }
 
     // init shooting
@@ -149,25 +514,23 @@ switch(Scene){
     ObjectMass = 0.1;
     ObjectActivationState = TRUE;
     ObjectLinearDamping = ObjectAngularDamping = 0;
-    ObjectPositionX = x;
-    ObjectPositionY = 2.1;
-    ObjectPositionZ = z - 1.5;
-    ObjectRotationX = 0.05;
-    ObjectRotationY = ObjectRotationZ = 0;
+    ObjectPosition = vector3(x, 2.1, z - 1.5);
+    ObjectRotation = vector3(0.05, 0, 0);
 
     for(int i = 100; i > 50; i--){
 
-      ObjectColorR = frac(i/2.0) < 0.5 ? 1 - (i-50) / 100.0: 0;
-      ObjectColorG = (i-50) / 50.0;
-      ObjectColorB = frac(i/2.0) >= 0.5 ? 0.8 - (i-50) / 300.0: 0;
+      ObjectColor = vector3(
+        frac(i/2.0) < 0.5 ? 1 - (i-50) / 100.0: 0,
+        (i-50) / 50.0,
+        frac(i/2.0) >= 0.5 ? 0.8 - (i-50) / 300.0: 0);
 
       // spawn
-      createModel(BrickModel);
+      createModel(ObjectModel);
 
-      ObjectPositionX = x;
-      ObjectPositionZ = z;
-      ObjectRotationX = 0;
-      ObjectRotationY = a;
+      ObjectPosition.X = x;
+      ObjectPosition.Z = z;
+      ObjectRotation.X = 0;
+      ObjectRotation.Y = a;
       ObjectActivationState = FALSE;
 
       a += 2.2 / i;
@@ -178,245 +541,220 @@ switch(Scene){
     break;
 
   case 2: // castle
+
     // set commmon properties
     ObjectMass = 0.3;
     ObjectActivationState = FALSE;
     ObjectLinearDamping = DEFAULT_DAMPING;
     ObjectAngularDamping = DEFAULT_DAMPING;
-    ObjectRotationX = ObjectRotationY = ObjectRotationZ = 0;
+    ObjectRotation = vector3(0, 0, 0);
 
     // main pillars
     ObjectType = CYLINDER2_SHAPE;
-    ObjectColorR = ObjectColorG = 1;
-    ObjectColorB = 0;
+    ObjectColor = vector3(1, 1, 0);
     // 1st
-    ObjectPositionX = ObjectPositionZ = 3;
-    ObjectPositionY = 2;
-    createModel(BrickModel);
+    ObjectPosition = vector3(3, 2, 3);
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionX = -3;
-    createModel(BrickModel);
+    ObjectPosition.X = -3;
+    createModel(ObjectModel);
     // 3rd
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionX = 3;
-    createModel(BrickModel);
+    ObjectPosition.X = 3;
+    createModel(ObjectModel);
 
     // side smaller pillars
     ObjectType = CYLINDER1_SHAPE;
-    ObjectColorR = 0;
-    ObjectColorG = 0.5;
-    ObjectColorB = 1;
+    ObjectColor = vector3(0, 0.5, 1);
     // 1st
-    ObjectPositionX = 5;
-    ObjectPositionY = 1;
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition = vector3(5, 1, 3);
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
     // 3nd
-    ObjectPositionX = 9;
-    createModel(BrickModel);
+    ObjectPosition.X = 9;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition.Z = 3;
+    createModel(ObjectModel);
     // 5th
-    ObjectPositionX = -5;
-    createModel(BrickModel);
+    ObjectPosition.X = -5;
+    createModel(ObjectModel);
     // 6th
-    ObjectPositionZ=-3;
-    createModel(BrickModel);
+    ObjectPosition.Z=-3;
+    createModel(ObjectModel);
     // 7th
-    ObjectPositionX=-9;
-    createModel(BrickModel);
+    ObjectPosition.X=-9;
+    createModel(ObjectModel);
     // 8th
-    ObjectPositionZ=3;
-    createModel(BrickModel);
+    ObjectPosition.Z=3;
+    createModel(ObjectModel);
 
     // main horizontal beams
     ObjectType = CUBE4_SHAPE;
-    ObjectRotationZ = ROT90;
-    ObjectColorR = 1;
-    ObjectColorG = 0.2;
-    ObjectColorB = 0;
+    ObjectRotation.Z = ROT90;
+    ObjectColor = vector3(1, 0.2, 0);
     // 1st
-    ObjectPositionX = 0;
-    ObjectPositionY = 5;
-    createModel(BrickModel);
+    ObjectPosition.X = 0;
+    ObjectPosition.Y = 5;
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionZ=-3;
-    createModel(BrickModel);
+    ObjectPosition.Z=-3;
+    createModel(ObjectModel);
 
     // side horizontal beams
     ObjectType = CUBE3_SHAPE;
-    ObjectColorR = 0;
-    ObjectColorG = 1;
-    ObjectColorB = 0.2;
+    ObjectColor = vector3(0, 1, 0.2);
     // 1st
-    ObjectPositionX = 7;
-    ObjectPositionY = 3;
-    createModel(BrickModel);
+    ObjectPosition.X = 7;
+    ObjectPosition.Y = 3;
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionZ=3;
-    createModel(BrickModel);
+    ObjectPosition.Z=3;
+    createModel(ObjectModel);
     // 3rd
-    ObjectPositionX = -7;
-    createModel(BrickModel);
+    ObjectPosition.X = -7;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionZ=-3;
-    createModel(BrickModel);
+    ObjectPosition.Z=-3;
+    createModel(ObjectModel);
 
     // main 2nd-level beams
     ObjectType = CUBE4_SHAPE;
-    ObjectColorR = ObjectColorB = 1;
-    ObjectColorG = 0.2;
-    ObjectRotationX = ROT90;
+    ObjectColor = vector3(1, 0.2, 1);
+    ObjectRotation.X = ROT90;
     // 1st
-    ObjectPositionX = 1;
-    ObjectPositionY = 7;
-    ObjectPositionZ = 0;
-    createModel(BrickModel);
+    ObjectPosition = vector3(1, 7, 0);
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionX = -1;
-    createModel(BrickModel);
+    ObjectPosition.X = -1;
+    createModel(ObjectModel);
 
     // gable
     ObjectType = CONE_SHAPE;
-    ObjectColorG = 1;
-    ObjectColorB = 0;
-    ObjectRotationX = ObjectRotationZ = 0;
+    ObjectColor = vector3(1, 1, 0);
+    ObjectRotation.X = 0;
+    ObjectRotation.Z = 0;
     // 1st
-    ObjectPositionX = 0;
-    ObjectPositionY = 9;
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition = vector3(0, 9, 3);
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
 
     // low tower
     ObjectType = CUBE2_SHAPE;
-    ObjectColorR = 0;
-    ObjectColorG = 0.5;
-    ObjectColorB = 1;
+    ObjectColor =  vector3(0, 0.5, 1);
     // 1st
-    ObjectPositionX = 3;
-    ObjectPositionY = 8;
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition = vector3(3, 8, 3);
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionX = -3;
-    createModel(BrickModel);
+    ObjectPosition.X = -3;
+    createModel(ObjectModel);
     // 3rd
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionX = 3;
-    createModel(BrickModel);
+    ObjectPosition.X = 3;
+    createModel(ObjectModel);
 
     // up tower
     ObjectType = CYLINDER2_SHAPE;
-    ObjectColorR = 0;
-    ObjectColorG = 1;
-    ObjectColorB = 0.2;
+    ObjectColor = vector3(0, 1, 0.2);
     // 1st
-    ObjectPositionY = 12;
-    createModel(BrickModel);
+    ObjectPosition.Y = 12;
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionX = -3;
-    createModel(BrickModel);
+    ObjectPosition.X = -3;
+    createModel(ObjectModel);
     // 3rd
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition.Z = 3;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionX = 3;
-    createModel(BrickModel);
+    ObjectPosition.X = 3;
+    createModel(ObjectModel);
 
     // roof
     ObjectType = CONE_SHAPE;
-    ObjectColorR = 1;
-    ObjectColorG = 0.2;
-    ObjectColorB = 0;
+    ObjectColor = vector3(1, 0.2, 0);
     // 1st
-    ObjectPositionY = 15;
-    createModel(BrickModel);
+    ObjectPosition.Y = 15;
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionX = -3;
-    createModel(BrickModel);
+    ObjectPosition.X = -3;
+    createModel(ObjectModel);
     // 3rd
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionX = 3;
-    createModel(BrickModel);
+    ObjectPosition.X = 3;
+    createModel(ObjectModel);
 
     // side walls
     ObjectType = CUBE2_SHAPE;
-    ObjectColorR = ObjectColorG = 1;
-    ObjectColorB = 0;
-    ObjectRotationY = ROT45;
+    ObjectColor = vector3(1, 1, 0);
+    ObjectRotation.Y = ROT45;
     // 1st
-    ObjectPositionX = 5.5;
-    ObjectPositionY = 6;
-    createModel(BrickModel);
+    ObjectPosition.X = 5.5;
+    ObjectPosition.Y = 6;
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition.Z = 3;
+    createModel(ObjectModel);
     // 3rd
-    ObjectPositionX = -5.5;
-    createModel(BrickModel);
+    ObjectPosition.X = -5.5;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
     // 5th
     ObjectType = CUBE1_SHAPE;
-    ObjectColorR = ObjectColorB = 1;
-    ObjectColorG = 0;
-    ObjectPositionX = 8.5;
-    ObjectPositionY = 5;
-    createModel(BrickModel);
+    ObjectColor = vector3(1, 0, 1);
+    ObjectPosition.X = 8.5;
+    ObjectPosition.Y = 5;
+    createModel(ObjectModel);
     // 6th
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition.Z = 3;
+    createModel(ObjectModel);
     // 7th
-    ObjectPositionX = -8.5;
-    createModel(BrickModel);
+    ObjectPosition.X = -8.5;
+    createModel(ObjectModel);
     // 8th
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
 
     // side roofs
     ObjectType = CONE_SHAPE;
-    ObjectColorG = 0.2;
-    ObjectColorB = 0;
+    ObjectColor = vector3(1, 0.2, 0);
     // 1st
-    ObjectPositionX = 5.5;
-    ObjectPositionY = 9;
-    createModel(BrickModel);
+    ObjectPosition.X = 5.5;
+    ObjectPosition.Y = 9;
+    createModel(ObjectModel);
     // 2nd
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition.Z = 3;
+    createModel(ObjectModel);
     // 3rd
-    ObjectPositionX = -5.5;
-    createModel(BrickModel);
+    ObjectPosition.X = -5.5;
+    createModel(ObjectModel);
     // 4th
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
     // 5th
-    ObjectPositionX = 8.5;
-    ObjectPositionY = 7;
-    createModel(BrickModel);
+    ObjectPosition.X = 8.5;
+    ObjectPosition.Y = 7;
+    createModel(ObjectModel);
     // 6th
-    ObjectPositionZ = 3;
-    createModel(BrickModel);
+    ObjectPosition.Z = 3;
+    createModel(ObjectModel);
     // 7th
-    ObjectPositionX = -8.5;
-    createModel(BrickModel);
+    ObjectPosition.X = -8.5;
+    createModel(ObjectModel);
     // 8th
-    ObjectPositionZ = -3;
-    createModel(BrickModel);
+    ObjectPosition.Z = -3;
+    createModel(ObjectModel);
 
     // init shooting
     shooting = TRUE;
@@ -429,23 +767,23 @@ switch(Scene){
     ObjectMass = 0.5;
     ObjectActivationState = TRUE;
     ObjectLinearDamping = ObjectAngularDamping = DEFAULT_DAMPING;
-    ObjectRotationX = ObjectRotationZ = 0;
+    ObjectRotation.X = 0;
+    ObjectRotation.Z = 0;
 
     for(int i = 0; i < 20; i++){
 
-      ObjectColorR = 0.05 * i;
-      ObjectColorG = 1 - 0.05 * i;
-      ObjectColorB = 0.5 - 0.005 * i;
+      ObjectColor = vector3(0.05 * i, 1 - 0.05 * i, 0.5 - 0.005 * i);
 
       for(float j = 0; j < 1; j+= 0.1){
 
-          ObjectPositionX = cos(j*PIx2 + i*PI2) * 5;
-          ObjectPositionY = i * 2.01 + 3;
-          ObjectPositionZ = sin(j*PIx2 + i*PI2) * 5;
-          ObjectRotationY = atan2(ObjectPositionX, ObjectPositionZ) / PIx2;
+          ObjectPosition = vector3(
+            cos(j*PIx2 + i*PI2) * 5,
+            i * 2.01 + 3,
+            sin(j*PIx2 + i*PI2) * 5);
+          ObjectRotation.Y = atan2(ObjectPosition.X, ObjectPosition.Z) / PIx2;
 
           // spawn
-          createModel(BrickModel);
+          createModel(ObjectModel);
         }
     }
 
@@ -457,29 +795,25 @@ if(shooting){
   model m;
 
   // set color
-  ObjectColorR = 0.3;
-  ObjectColorG = 0.1;
-  ObjectColorB = 0;
+  ObjectColor = vector3(0.3, 0.1, 0);
 
   // set position
-  ObjectPositionX = 20;
-  ObjectPositionY = 3;
-  ObjectPositionZ = -20;
+  ObjectPosition = vector3(20, 3, -20);
 
   // set physical properties
   ObjectType = SPHERE_SHAPE;
   ObjectMass = 2;
 
   // spawn
-  m = createModel(BrickModel);
+  m = createModel(ObjectModel);
 
   // set velocity
-  zbtSetLinearVelocity(m.BrickId, -25, 8, 25);
+  zbtSetLinearVelocity(m.BodyId, -25, 8, 25);
 }]]>
           </Expression>
         </ZExpression>
-      </OnPressed>
-    </KeyPress>
+      </OnTrue>
+    </Condition>
   </OnUpdate>
   <OnRender>
     <RenderTransformGroup Comment="Sky" Scale="150 100 150" Translate="0 15 0">
@@ -508,58 +842,34 @@ if(shooting){
       <Children>
         <Group Comment="Common collision shapes">
           <Children>
-            <DefineVariable Name="Cube1ShapeId" Type="1"/>
-            <DefineVariable Name="Cube2ShapeId" Type="1"/>
-            <DefineVariable Name="Cube3ShapeId" Type="1"/>
-            <DefineVariable Name="Cube4ShapeId" Type="1"/>
-            <DefineVariable Name="Cylinder1ShapeId" Type="1"/>
-            <DefineVariable Name="Cylinder2ShapeId" Type="1"/>
-            <DefineVariable Name="Cylinder3ShapeId" Type="1"/>
-            <DefineVariable Name="Cylinder4ShapeId" Type="1"/>
-            <DefineVariable Name="ConeShapeId" Type="1"/>
-            <DefineVariable Name="DominoShapeId" Type="1"/>
-            <DefineVariable Name="KaplaShapeId" Type="1"/>
-            <DefineVariable Name="SphereShapeId" Type="1"/>
-            <DefineVariable Name="ScalableSphereShapeId" Type="1"/>
-            <DefineConstant Name="CUBE1_SHAPE" Type="1" IntValue="10"/>
-            <DefineConstant Name="CUBE2_SHAPE" Type="1" IntValue="20"/>
-            <DefineConstant Name="CUBE3_SHAPE" Type="1" IntValue="30"/>
-            <DefineConstant Name="CUBE4_SHAPE" Type="1" IntValue="40"/>
-            <DefineConstant Name="CYLINDER1_SHAPE" Type="1" IntValue="50"/>
-            <DefineConstant Name="CYLINDER2_SHAPE" Type="1" IntValue="60"/>
-            <DefineConstant Name="CYLINDER3_SHAPE" Type="1" IntValue="70"/>
-            <DefineConstant Name="CYLINDER4_SHAPE" Type="1" IntValue="80"/>
-            <DefineConstant Name="CONE_SHAPE" Type="1" IntValue="90"/>
-            <DefineConstant Name="DOMINO_SHAPE" Type="1" IntValue="120"/>
-            <DefineConstant Name="KAPLA_SHAPE" Type="1" IntValue="130"/>
-            <DefineConstant Name="SPHERE_SHAPE" Type="1" IntValue="140"/>
-            <DefineConstant Name="SCALABLE_SPHERE_SHAPE" Type="1" IntValue="145"/>
+            <Variable Name="Cube1ShapeId" Type="1"/>
+            <Variable Name="Cube2ShapeId" Type="1"/>
+            <Variable Name="Cube3ShapeId" Type="1"/>
+            <Variable Name="Cube4ShapeId" Type="1"/>
+            <Variable Name="Cylinder1ShapeId" Type="1"/>
+            <Variable Name="Cylinder2ShapeId" Type="1"/>
+            <Variable Name="Cylinder3ShapeId" Type="1"/>
+            <Variable Name="Cylinder4ShapeId" Type="1"/>
+            <Variable Name="ConeShapeId" Type="1"/>
+            <Variable Name="DominoShapeId" Type="1"/>
+            <Variable Name="KaplaShapeId" Type="1"/>
+            <Variable Name="SphereShapeId" Type="1"/>
+            <Variable Name="ScalableSphereShapeId" Type="1"/>
+            <Constant Name="CUBE1_SHAPE" Type="1" IntValue="10"/>
+            <Constant Name="CUBE2_SHAPE" Type="1" IntValue="20"/>
+            <Constant Name="CUBE3_SHAPE" Type="1" IntValue="30"/>
+            <Constant Name="CUBE4_SHAPE" Type="1" IntValue="40"/>
+            <Constant Name="CYLINDER1_SHAPE" Type="1" IntValue="50"/>
+            <Constant Name="CYLINDER2_SHAPE" Type="1" IntValue="60"/>
+            <Constant Name="CYLINDER3_SHAPE" Type="1" IntValue="70"/>
+            <Constant Name="CYLINDER4_SHAPE" Type="1" IntValue="80"/>
+            <Constant Name="CONE_SHAPE" Type="1" IntValue="90"/>
+            <Constant Name="DOMINO_SHAPE" Type="1" IntValue="120"/>
+            <Constant Name="KAPLA_SHAPE" Type="1" IntValue="130"/>
+            <Constant Name="SPHERE_SHAPE" Type="1" IntValue="140"/>
+            <Constant Name="SCALABLE_SPHERE_SHAPE" Type="1" IntValue="145"/>
           </Children>
         </Group>
-        <Group Comment="Common 3D object setters">
-          <Children>
-            <DefineVariable Name="ObjectType" Type="1"/>
-            <DefineVariable Name="ObjectPositionX"/>
-            <DefineVariable Name="ObjectPositionY"/>
-            <DefineVariable Name="ObjectPositionZ"/>
-            <DefineVariable Name="ObjectRotationX"/>
-            <DefineVariable Name="ObjectRotationY"/>
-            <DefineVariable Name="ObjectRotationZ"/>
-            <DefineVariable Name="ObjectScaleX"/>
-            <DefineVariable Name="ObjectScaleY"/>
-            <DefineVariable Name="ObjectScaleZ"/>
-            <DefineVariable Name="ObjectColorR"/>
-            <DefineVariable Name="ObjectColorG"/>
-            <DefineVariable Name="ObjectColorB"/>
-            <DefineVariable Name="ObjectMass"/>
-            <DefineVariable Name="ObjectLinearDamping"/>
-            <DefineVariable Name="ObjectAngularDamping"/>
-            <DefineVariable Name="ObjectActivationState" Type="1"/>
-          </Children>
-        </Group>
-        <DefineVariable Name="Scene" Type="1"/>
-        <DefineConstant Name="NUMBER_OF_SCENES" Type="1" IntValue="4"/>
-        <DefineConstant Name="DEFAULT_DAMPING" Value="0.1"/>
       </Children>
     </Group>
     <Group Comment="Artwork">
@@ -902,40 +1212,38 @@ this.N.Z = this.V.Z;
         </Group>
       </Children>
     </Group>
-    <Group Comment="Models">
-      <Children>
-        <Model Name="BrickModel" Position="-33.7846 3.3394 11.3442" Category="1" RenderOrder="1">
-          <Definitions>
-            <DefineVariable Name="BrickId" Type="1"/>
-            <DefineVariable Name="BrickShapeId" Type="1"/>
-          </Definitions>
-          <OnRender>
-            <UseMaterial Material="ObjectMaterial"/>
-            <RenderSetColor Name="BrickColor" Color="0.9404 0.2947 0.476 1"/>
-            <RenderMesh Name="ModelMesh" Mesh="Cube1Mesh"/>
-          </OnRender>
-          <OnUpdate>
-            <ZExpression Comment="Update position and rotation">
-              <Expression>
+    <Model Name="ObjectModel" Position="-33.7846 3.3394 11.3442" Category="1" RenderOrder="1">
+      <Definitions>
+        <Variable Name="BodyId" Type="1"/>
+        <Variable Name="ObjectShapeId" Type="1"/>
+      </Definitions>
+      <OnRender>
+        <UseMaterial Material="ObjectMaterial"/>
+        <RenderSetColor Name="BrickColor" Color="0.9404 0.2947 0.476 1"/>
+        <RenderMesh Name="ModelMesh" Mesh="Cube1Mesh"/>
+      </OnRender>
+      <OnUpdate>
+        <ZExpression Comment="Update position and rotation">
+          <Expression>
 <![CDATA[// update position and rotation
-zbtGetPosition(BrickId, CurrentModel.Position.X, CurrentModel.Position.Y, CurrentModel.Position.Z);
-zbtGetRotation(BrickId, CurrentModel.Rotation.X, CurrentModel.Rotation.Y, CurrentModel.Rotation.Z);]]>
-              </Expression>
-            </ZExpression>
-          </OnUpdate>
-          <OnSpawn>
-            <ZExpression Comment="Init">
-              <Expression>
+zbtGetPosition(BodyId, CurrentModel.Position.X, CurrentModel.Position.Y, CurrentModel.Position.Z);
+zbtGetRotation(BodyId, CurrentModel.Rotation.X, CurrentModel.Rotation.Y, CurrentModel.Rotation.Z);]]>
+          </Expression>
+        </ZExpression>
+      </OnUpdate>
+      <OnSpawn>
+        <ZExpression Comment="Init">
+          <Expression>
 <![CDATA[int shapeId, rbId;
-int isScaled = ObjectScaleX != 1 || ObjectScaleY != 1 || ObjectScaleZ != 1;
+int isScaled = ObjectScale.X != 1 || ObjectScale.Y != 1 || ObjectScale.Z != 1;
 
 // set properties from generic setters
-CurrentModel.Position.X = ObjectPositionX;
-CurrentModel.Position.Y = ObjectPositionY;
-CurrentModel.Position.Z = ObjectPositionZ;
-CurrentModel.Rotation.X = ObjectRotationX;
-CurrentModel.Rotation.Y = ObjectRotationY;
-CurrentModel.Rotation.Z = ObjectRotationZ;
+CurrentModel.Position.X = ObjectPosition.X;
+CurrentModel.Position.Y = ObjectPosition.Y;
+CurrentModel.Position.Z = ObjectPosition.Z;
+CurrentModel.Rotation.X = ObjectRotation.X;
+CurrentModel.Rotation.Y = ObjectRotation.Y;
+CurrentModel.Rotation.Z = ObjectRotation.Z;
 
 // select shape
 switch(ObjectType){
@@ -1007,19 +1315,19 @@ switch(ObjectType){
 
 // scale
 if(isScaled){
-  CurrentModel.Scale.X = ObjectScaleX;
-  CurrentModel.Scale.Y = ObjectScaleY;
-  CurrentModel.Scale.Z = ObjectScaleZ;
+  CurrentModel.Scale.X = ObjectScale.X;
+  CurrentModel.Scale.Y = ObjectScale.Y;
+  CurrentModel.Scale.Z = ObjectScale.Z;
 
-  zbtSetShapeLocalScaling(shapeId, ObjectScaleX, ObjectScaleY, ObjectScaleZ);
-  BrickShapeId = shapeId;
-} else BrickShapeId = -1;
+  zbtSetShapeLocalScaling(shapeId, ObjectScale.X, ObjectScale.Y, ObjectScale.Z);
+  ObjectShapeId = shapeId;
+} else ObjectShapeId = -1;
 
 // create rigid body
 rbId = zbtAddRigidBody(ObjectMass, shapeId,
-  ObjectPositionX, ObjectPositionY, ObjectPositionZ,
-  ObjectRotationX, ObjectRotationY, ObjectRotationZ);
-BrickId = rbId;
+  ObjectPosition.X, ObjectPosition.Y, ObjectPosition.Z,
+  ObjectRotation.X, ObjectRotation.Y, ObjectRotation.Z);
+BodyId = rbId;
 
 // set physical properties
 zbtSetDamping(rbId, ObjectLinearDamping, ObjectAngularDamping);
@@ -1027,22 +1335,21 @@ zbtSetActivationState(rbId, ObjectActivationState);
 zbtSetDeactivationThresholds(rbId, 0.4, 0.4);
 
 // set color and texture
-BrickColor.Color.R = ObjectColorR;
-BrickColor.Color.G = ObjectColorG;
-BrickColor.Color.B = ObjectColorB;]]>
-              </Expression>
-            </ZExpression>
-          </OnSpawn>
-          <OnRemove>
-            <ZExpression Comment="Delete rigid body and shape">
-              <Expression>
-<![CDATA[zbtDeleteRigidBody(BrickId);
-if(BrickShapeId>0) zbtDeleteShape(BrickShapeId);]]>
-              </Expression>
-            </ZExpression>
-          </OnRemove>
-        </Model>
-      </Children>
-    </Group>
+BrickColor.Color.R = ObjectColor.R;
+BrickColor.Color.G = ObjectColor.G;
+BrickColor.Color.B = ObjectColor.B;]]>
+          </Expression>
+        </ZExpression>
+      </OnSpawn>
+      <OnRemove>
+        <ZExpression Comment="Delete rigid body and shape">
+          <Expression>
+<![CDATA[zbtDeleteRigidBody(BodyId);
+if(ObjectShapeId>0) zbtDeleteShape(ObjectShapeId);]]>
+          </Expression>
+        </ZExpression>
+      </OnRemove>
+    </Model>
+    <Variable Name="WWW" Type="7"/>
   </Content>
 </ZApplication>
