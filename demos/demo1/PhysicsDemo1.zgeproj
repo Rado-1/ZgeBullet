@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" ScreenMode="0" CameraPosition="51.3401 10 31.0515" CameraRotation="0 2.8366 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
+<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" ScreenMode="0" CameraPosition="37.1207 10 47.1387" CameraRotation="0 -0.1062 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -820,8 +820,6 @@ if(shooting){
       <Children>
         <UseMaterial Material="SkyMaterial"/>
         <RenderMesh Mesh="SphereMesh"/>
-        <RenderTransform Scale="1.5 1 1.5"/>
-        <RenderMesh Mesh="SphereMesh"/>
       </Children>
     </RenderTransformGroup>
     <RenderTransformGroup Comment="Ground" Scale="120 120 1" Translate="0 -0.3 0" Rotate="-0.25 0 0">
@@ -1185,16 +1183,16 @@ this.N.Z = this.V.Z;
             </Material>
             <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
               <Producers>
-                <BitmapFromFile Comment="Imported from SkyBitmap.png">
+                <BitmapFromFile Comment="Imported from sky.png">
                   <BitmapFile>
-<![CDATA[78DA95C2894E080000005091223942D17764342D96C958B54CA6C5B4328665D5328CD1CA18562BD3D4588C95B1B22C568B69B11AC6B05A1A53D362A1880E6749DFF0DE5E64D4FF48BA0C2FC72BECD268BC72D2C6E058BCCA2E598DE3FED935782D8EB711EBF0FA09BB0127E0441B9E8493C7ED46BC09A7D8C59BF196BF3615A7E1AD76D136BCFD8F4DC71938D32EDC8177FEB6BBF06EBCC786EDC559BFEC3E9C8D73EC825C9CF7D3EEC707F0413BFF103EFCC31EC147F1313B2F1F178CD9427C1C9FB0734FE253A3F6343E838B6C68312E19B1A5F82C3E67E794E1F3C3B61C57E00B36E422AEFC6E2FE1CBF88A9D7D15577DB3D5F81ABE6E67DDC03543B616DFC47536F816AEFF6A6FE33BB8C10635E2A62FF62EBE87EFDB99CDB865D03EC00F71AB0D6CC38F06EC63FC043FB5339EE1E79FED0BFC12B7DBE91DB8F3937D85BBF06B1BF006BFFD68BB710F7E67A7F5E2BE7EFB1E7FB05340E956F5]]>
+<![CDATA[78DAB5D8F946C4511806E0F67D99F67ED7111189212211318C88884444242212119188881111912122464444222212119168DFF7BDAEE1F9239E0B98E59CEFBCDF1B54FD06A4DA54D6FC985A535187C2DFA6DE94377C994653D6849A3F4D8B298D7C98A82969456DEFA6DD1477BC994E53D485BA5F4D8F09F5BE983E53D88F069ECDA029187A32C3267F048D3E9A319337FE60264CEE249ABA37D326277667664CF62C9ABB35F3266BE1C6C44DE6225ABA36CB26237165564CFA2A5ABB34EB266DE3C26C9AD42DB47D6E764CCAEE99D933C9FBE8E0D41C9AA4A31373FCCFF0F3E8F7E5DF13FF2F3D0F7ADEF43CF37DC1FBA8F75DE789CE2B9E87386F759EEB7BA1EF11BF77F89EEA7BAD7940F306E719CC4B9AC734EF699EE4BC8A7958F3B6E679DD17781FC17D47F729DDD7741FE47D13F759DD97751FD77D9FFB04EC2BB40FD1BE45FB1CEE8BB08FD2BE4BFB34EDEBB80FC4BE51FB4CED4BB58FE5BE17FB64EDABB50FD7BE3DC03EFF0FB9DE52F5]]>
                   </BitmapFile>
                 </BitmapFromFile>
               </Producers>
             </Bitmap>
             <Material Name="SkyMaterial" WireframeWidth="0" Light="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
               <Textures>
-                <MaterialTexture Texture="SkyBitmap" TextureScale="1 1.8 0" TextureY="0.59" TexCoords="1"/>
+                <MaterialTexture Texture="SkyBitmap" TextureScale="1 1 0" TextureY="0.05" TexCoords="1" Origin="0 0 0"/>
               </Textures>
             </Material>
             <Bitmap Name="DigitsBitmap" Width="3" Height="0">
@@ -1350,6 +1348,5 @@ if(ObjectShapeId>0) zbtDeleteShape(ObjectShapeId);]]>
         </ZExpression>
       </OnRemove>
     </Model>
-    <Variable Name="WWW" Type="7"/>
   </Content>
 </ZApplication>
