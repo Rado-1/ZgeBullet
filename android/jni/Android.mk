@@ -41,7 +41,6 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btConvexPlaneCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btEmptyCollisionAlgorithm.cpp\
-    $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btGhostObject.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btHashedSimplePairCache.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btInternalEdgeUtility.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btManifoldResult.cpp\
@@ -133,5 +132,6 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/LinearMath/btQuickprof.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btRaycastVehicle.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btWheelInfo.cpp
+#    $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btGhostObject.cpp
 
 include $(BUILD_SHARED_LIBRARY)
