@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" ScreenMode="0" CameraPosition="37.1207 10 47.1387" CameraRotation="0 -0.1062 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
+<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" ScreenMode="0" CameraPosition="57.2022 10 18.1083" CameraRotation="0 -0.2012 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -8,7 +8,7 @@
   http://bulletphysics.org
 
   Download Windows DLL and Android shared library from
-  http://code.google.com/p/zgebullet/downloads
+  http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/
 
   Copyright (c) 2012-2014 Radovan Cervenka
 */
@@ -105,7 +105,9 @@ int zbtDeleteAllShapes() {}
 
 // Rigid bodies
 
-int zbtAddRigidBody(float mass, int shapeId, float x, float y, float z,
+int zbtAddRigidBody(float mass, int shapeId, xptr pos, xptr rot) {}
+
+int zbtAddRigidBodyXYZ(float mass, int shapeId, float x, float y, float z,
 	float rx, float ry, float rz) {}
 
 int zbtDeleteRigidBody(int rigidBodyId) {}
@@ -268,10 +270,17 @@ int zbtResetVehicleSusp(int vehicleId) {}
 
 float zbtGetVehicleCurrentSpeed(int vehicleId) {}
 
-int zbtGetWheelPosition(int vehicleId, int wheelId, ref float x, ref float y, ref float z) {}
+int zbtGetWheelPosition(int vehicleId, int wheelId, xptr pos) {}
 
-int zbtGetWheelRotation(int vehicleId, int wheelId, ref float rx, ref float ry, ref float rz) {}
-int zbtGetWheelPosRot(int vehicleId, int wheelId,
+int zbtGetWheelPositionXYZ(int vehicleId, int wheelId, ref float x, ref float y, ref float z) {}
+
+int zbtGetWheelRotation(int vehicleId, int wheelId, xptr rot) {}
+
+int zbtGetWheelRotationXYZ(int vehicleId, int wheelId, ref float rx, ref float ry, ref float rz) {}
+
+int zbtGetWheelPosRot(int vehicleId, int wheelId,	xptr pos, xptr rot) {}
+
+int zbtGetWheelPosRotXYZ(int vehicleId, int wheelId,
 	ref float x, ref float y, ref float z, ref float rx, ref float ry, ref float rz) {}
 
 int zbtDeleteRaycastVehicle(int vehicleId) {}
@@ -284,15 +293,21 @@ int zbtSetRestitution(int collisionObjectId, float restitution) {}
 
 int zbtSetHitFraction(int collisionObjectId, float hitFraction) {}
 
-int zbtGetPosition(int collisionObjectId, ref float x, ref float y, ref float z) {}
+int zbtGetPosition(int collisionObjectId, xptr pos) {}
+
+int zbtGetPositionXYZ(int collisionObjectId, ref float x, ref float y, ref float z) {}
 
 int zbtSetPosition(int collisionObjectId, float x, float y, float z) {}
 
-int zbtGetRotation(int collisionObjectId, ref float rx, ref float ry, ref float rz) {}
+int zbtGetRotation(int collisionObjectId, xptr rot) {}
+
+int zbtGetRotationXYZ(int collisionObjectId, ref float rx, ref float ry, ref float rz) {}
 
 int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {}
 
-int zbtGetPosRot(int collisionObjectId, ref float x, ref float y, ref float z,
+int zbtGetPosRot(int collisionObjectId, xptr pos, xptr rot) {}
+
+int zbtGetPosRotXYZ(int collisionObjectId, ref float x, ref float y, ref float z,
 	ref float rx, ref float ry, ref float rz) {}
 
 // Activation and deactivation
@@ -346,6 +361,22 @@ const float ROT45 = 0.125;
 const int NUMBER_OF_SCENES = 4;
 const float DEFAULT_DAMPING = 0.1;
 
+// shape types
+const int NUMBER_OF_SHAPES = 13;
+const int CUBE1_SHAPE = 0;
+const int CUBE2_SHAPE = 1;
+const int CUBE3_SHAPE = 2;
+const int CUBE4_SHAPE = 3;
+const int CYLINDER1_SHAPE = 4;
+const int CYLINDER2_SHAPE = 5;
+const int CYLINDER3_SHAPE = 6;
+const int CYLINDER4_SHAPE = 7;
+const int CONE_SHAPE = 8;
+const int DOMINO_SHAPE = 9;
+const int KAPLA_SHAPE = 10;
+const int SPHERE_SHAPE = 11;
+const int SCALABLE_SPHERE_SHAPE = 12;
+
 // VARIABLES
 
 int Scene;
@@ -362,6 +393,9 @@ float ObjectMass;
 float ObjectLinearDamping;
 float ObjectAngularDamping;
 int ObjectActivationState;
+
+// collision shape IDs
+int[NUMBER_OF_SHAPES] ShapeId;
 
 // FUNCTIONS
 
@@ -396,24 +430,13 @@ zbtCreateWorld();
 zbtSetWorldGravity(0, -10, 0);
 
 // init collision shapes
-Cube1ShapeId = createCollisionShape(CUBE1_SHAPE); // cube 1
-Cube2ShapeId = createCollisionShape(CUBE2_SHAPE); // cube 2
-Cube3ShapeId = createCollisionShape(CUBE3_SHAPE); // cube 3
-Cube4ShapeId = createCollisionShape(CUBE4_SHAPE); // cube 4
-Cylinder1ShapeId = createCollisionShape(CYLINDER1_SHAPE); // cylinder 1
-Cylinder2ShapeId = createCollisionShape(CYLINDER2_SHAPE); // cylinder 2
-Cylinder3ShapeId = createCollisionShape(CYLINDER3_SHAPE); // cylinder 3
-Cylinder4ShapeId = createCollisionShape(CYLINDER4_SHAPE); // cylinder 4
-ConeShapeId = createCollisionShape(CONE_SHAPE); // cone
-DominoShapeId = createCollisionShape(DOMINO_SHAPE); // domino
-KaplaShapeId = createCollisionShape(KAPLA_SHAPE); // kapla
-SphereShapeId = createCollisionShape(SPHERE_SHAPE); // sphere
-ScalableSphereShapeId = createCollisionShape(SCALABLE_SPHERE_SHAPE); // scalable sphere
+for(int i = 0; i < NUMBER_OF_SHAPES; ++i)
+  ShapeId[i] = createCollisionShape(i);
 
 // create ground
 int sh = zbtCreateBoxShape(100,1,100);
 //zbtCreateStaticPlaneShape(0,1,0,0);
-int rb = zbtAddRigidBody(0, sh, 0, -1, 0, 0, 0, 0);
+int rb = zbtAddRigidBodyXYZ(0, sh, 0, -1, 0, 0, 0, 0);
 zbtSetFriction(rb, 1);
 
 // init scene
@@ -647,7 +670,7 @@ switch(Scene){
 
     // low tower
     ObjectType = CUBE2_SHAPE;
-    ObjectColor =  vector3(0, 0.5, 1);
+    ObjectColor = vector3(0, 0.5, 1);
     // 1st
     ObjectPosition = vector3(3, 8, 3);
     createModel(ObjectModel);
@@ -836,40 +859,6 @@ if(shooting){
     <Light Position="-50 50 -50" Color="1 0.502 0 1" Kind="1"/>
   </Lights>
   <Content>
-    <Group Comment="Globals">
-      <Children>
-        <Group Comment="Common collision shapes">
-          <Children>
-            <Variable Name="Cube1ShapeId" Type="1"/>
-            <Variable Name="Cube2ShapeId" Type="1"/>
-            <Variable Name="Cube3ShapeId" Type="1"/>
-            <Variable Name="Cube4ShapeId" Type="1"/>
-            <Variable Name="Cylinder1ShapeId" Type="1"/>
-            <Variable Name="Cylinder2ShapeId" Type="1"/>
-            <Variable Name="Cylinder3ShapeId" Type="1"/>
-            <Variable Name="Cylinder4ShapeId" Type="1"/>
-            <Variable Name="ConeShapeId" Type="1"/>
-            <Variable Name="DominoShapeId" Type="1"/>
-            <Variable Name="KaplaShapeId" Type="1"/>
-            <Variable Name="SphereShapeId" Type="1"/>
-            <Variable Name="ScalableSphereShapeId" Type="1"/>
-            <Constant Name="CUBE1_SHAPE" Type="1" IntValue="10"/>
-            <Constant Name="CUBE2_SHAPE" Type="1" IntValue="20"/>
-            <Constant Name="CUBE3_SHAPE" Type="1" IntValue="30"/>
-            <Constant Name="CUBE4_SHAPE" Type="1" IntValue="40"/>
-            <Constant Name="CYLINDER1_SHAPE" Type="1" IntValue="50"/>
-            <Constant Name="CYLINDER2_SHAPE" Type="1" IntValue="60"/>
-            <Constant Name="CYLINDER3_SHAPE" Type="1" IntValue="70"/>
-            <Constant Name="CYLINDER4_SHAPE" Type="1" IntValue="80"/>
-            <Constant Name="CONE_SHAPE" Type="1" IntValue="90"/>
-            <Constant Name="DOMINO_SHAPE" Type="1" IntValue="120"/>
-            <Constant Name="KAPLA_SHAPE" Type="1" IntValue="130"/>
-            <Constant Name="SPHERE_SHAPE" Type="1" IntValue="140"/>
-            <Constant Name="SCALABLE_SPHERE_SHAPE" Type="1" IntValue="145"/>
-          </Children>
-        </Group>
-      </Children>
-    </Group>
     <Group Comment="Artwork">
       <Children>
         <Group Comment="Meshes">
@@ -1221,116 +1210,91 @@ this.N.Z = this.V.Z;
         <RenderMesh Name="ModelMesh" Mesh="Cube1Mesh"/>
       </OnRender>
       <OnUpdate>
-        <ZExpression Comment="Update position and rotation">
-          <Expression>
-<![CDATA[// update position and rotation
-zbtGetPosition(BodyId, CurrentModel.Position.X, CurrentModel.Position.Y, CurrentModel.Position.Z);
-zbtGetRotation(BodyId, CurrentModel.Rotation.X, CurrentModel.Rotation.Y, CurrentModel.Rotation.Z);]]>
-          </Expression>
-        </ZExpression>
+        <ZExpression Comment="Update position and rotation" Expression="zbtGetPosRot(BodyId, CurrentModel.Position, CurrentModel.Rotation);"/>
       </OnUpdate>
       <OnSpawn>
         <ZExpression Comment="Init">
           <Expression>
-<![CDATA[int shapeId, rbId;
+<![CDATA[int shId, rbId;
 int isScaled = ObjectScale.X != 1 || ObjectScale.Y != 1 || ObjectScale.Z != 1;
 
-// set properties from generic setters
-CurrentModel.Position.X = ObjectPosition.X;
-CurrentModel.Position.Y = ObjectPosition.Y;
-CurrentModel.Position.Z = ObjectPosition.Z;
-CurrentModel.Rotation.X = ObjectRotation.X;
-CurrentModel.Rotation.Y = ObjectRotation.Y;
-CurrentModel.Rotation.Z = ObjectRotation.Z;
+// set properties from object setters
+CurrentModel.Position = ObjectPosition;
+CurrentModel.Rotation = ObjectRotation;
 
-// select shape
+// select/create shape
+if(isScaled){
+  shId = createCollisionShape(ObjectType);
+  zbtSetShapeLocalScaling(shId, ObjectScale.X, ObjectScale.Y, ObjectScale.Z);
+  ObjectShapeId = shId;
+  CurrentModel.Scale = ObjectScale;
+} else {
+  shId = ShapeId[ObjectType];
+  ObjectShapeId = -1;
+}
+
+// select mesh
 switch(ObjectType){
 
   case CUBE1_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CUBE1_SHAPE) : Cube1ShapeId;
     ModelMesh.Mesh = Cube1Mesh;
     break;
 
   case CUBE2_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CUBE2_SHAPE) : Cube2ShapeId;
     ModelMesh.Mesh = Cube2Mesh;
     break;
 
   case CUBE3_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CUBE3_SHAPE) : Cube3ShapeId;
     ModelMesh.Mesh = Cube3Mesh;
     break;
 
   case CUBE4_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CUBE4_SHAPE) : Cube4ShapeId;
     ModelMesh.Mesh = Cube4Mesh;
     break;
 
   case CYLINDER1_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CYLINDER1_SHAPE) : Cylinder1ShapeId;
     ModelMesh.Mesh = Cylinder1Mesh;
     break;
 
   case CYLINDER2_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CYLINDER2_SHAPE) : Cylinder2ShapeId;
     ModelMesh.Mesh = Cylinder2Mesh;
     break;
 
   case CYLINDER3_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CYLINDER3_SHAPE) : Cylinder3ShapeId;
     ModelMesh.Mesh = Cylinder3Mesh;
     break;
 
   case CYLINDER4_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CYLINDER4_SHAPE) : Cylinder4ShapeId;
     ModelMesh.Mesh = Cylinder4Mesh;
     break;
 
   case CONE_SHAPE:
-    shapeId = isScaled ? createCollisionShape(CONE_SHAPE) : ConeShapeId;
     ModelMesh.Mesh = ConeMesh;
     break;
 
   case DOMINO_SHAPE:
-    shapeId = isScaled ? createCollisionShape(DOMINO_SHAPE) : DominoShapeId;
     ModelMesh.Mesh = DominoMesh;
     break;
 
   case KAPLA_SHAPE:
-    shapeId = isScaled ? createCollisionShape(KAPLA_SHAPE) : KaplaShapeId;
     ModelMesh.Mesh = KaplaMesh;
     break;
 
   case SPHERE_SHAPE:
-    shapeId = isScaled ? createCollisionShape(SPHERE_SHAPE) : SphereShapeId;
     ModelMesh.Mesh = SphereMesh;
     break;
 
   case SCALABLE_SPHERE_SHAPE:
-    shapeId = isScaled ? createCollisionShape(SCALABLE_SPHERE_SHAPE) : ScalableSphereShapeId;
     ModelMesh.Mesh = SphereMesh;
 }
 
-// scale
-if(isScaled){
-  CurrentModel.Scale.X = ObjectScale.X;
-  CurrentModel.Scale.Y = ObjectScale.Y;
-  CurrentModel.Scale.Z = ObjectScale.Z;
-
-  zbtSetShapeLocalScaling(shapeId, ObjectScale.X, ObjectScale.Y, ObjectScale.Z);
-  ObjectShapeId = shapeId;
-} else ObjectShapeId = -1;
-
 // create rigid body
-rbId = zbtAddRigidBody(ObjectMass, shapeId,
-  ObjectPosition.X, ObjectPosition.Y, ObjectPosition.Z,
-  ObjectRotation.X, ObjectRotation.Y, ObjectRotation.Z);
-BodyId = rbId;
+BodyId = zbtAddRigidBody(ObjectMass, shId, ObjectPosition, ObjectRotation);
 
 // set physical properties
-zbtSetDamping(rbId, ObjectLinearDamping, ObjectAngularDamping);
-zbtSetActivationState(rbId, ObjectActivationState);
-zbtSetDeactivationThresholds(rbId, 0.4, 0.4);
+zbtSetDamping(BodyId, ObjectLinearDamping, ObjectAngularDamping);
+zbtSetActivationState(BodyId, ObjectActivationState);
+zbtSetDeactivationThresholds(BodyId, 0.4, 0.4);
 
 // set color and texture
 BrickColor.Color.R = ObjectColor.R;

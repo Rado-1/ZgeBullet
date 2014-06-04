@@ -321,7 +321,7 @@ export int zbtDeleteAllShapes() {
 
 // Rigid bodies
 
-export int zbtAddRigidBody(float mass, int shapeId, float x, float y, float z, float rx, float ry, float rz) {
+export int zbtAddRigidBodyXYZ(float mass, int shapeId, float x, float y, float z, float rx, float ry, float rz) {
 	IS_INITIALIZED;
 
 	btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI), btVector3(x, y, z)));
@@ -334,6 +334,10 @@ export int zbtAddRigidBody(float mass, int shapeId, float x, float y, float z, f
     gWorld->addRigidBody(rigidBody);
 
 	ADD_TO_LIST(gCollisionObjectList, rigidBody);
+}
+
+export int zbtAddRigidBody(float mass, int shapeId, float pos[3], float rot[3]) {
+	return zbtAddRigidBodyXYZ(mass, shapeId, pos[0], pos[1], pos[2], rot[0], rot[1], rot[2]);
 }
 
 export int zbtDeleteRigidBody(int rigidBodyId) {
@@ -875,7 +879,7 @@ export float zbtGetVehicleCurrentSpeed(int vehicleId) {
 	return rv->getCurrentSpeedKmHour();
 }
 
-export int zbtGetWheelPosition(int vehicleId, int wheelId, float &x, float &y, float &z) {
+export int zbtGetWheelPositionXYZ(int vehicleId, int wheelId, float &x, float &y, float &z) {
 	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
 	CHECK_WHEEL(wheelId);
 	x = rv->getWheelTransformWS(wheelId).getOrigin().getX();
@@ -884,13 +888,11 @@ export int zbtGetWheelPosition(int vehicleId, int wheelId, float &x, float &y, f
 	return DONE;
 }
 
-/*
-export int zbtGetWheelPositionExt(int vehicleId, int wheelId, float pos[3]) {
-	return zbtGetWheelPosition(vehicleId, wheelId, pos[0], pos[1], pos[2]);
+export int zbtGetWheelPosition(int vehicleId, int wheelId, float pos[3]) {
+	return zbtGetWheelPositionXYZ(vehicleId, wheelId, pos[0], pos[1], pos[2]);
 }
-*/
 
-export int zbtGetWheelRotation(int vehicleId, int wheelId, float &rx, float &ry, float &rz) {
+export int zbtGetWheelRotationXYZ(int vehicleId, int wheelId, float &rx, float &ry, float &rz) {
 	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
 	CHECK_WHEEL(wheelId);
 
@@ -902,27 +904,23 @@ export int zbtGetWheelRotation(int vehicleId, int wheelId, float &rx, float &ry,
 	return DONE;
 }
 
-/*
-export int zbtGetWheelRotationExt(int vehicleId, int wheelId, float rot[3]) {
-	return zbtGetWheelRotation(vehicleId, wheelId, rot[0], rot[1], rot[2]);
+export int zbtGetWheelRotation(int vehicleId, int wheelId, float rot[3]) {
+	return zbtGetWheelRotationXYZ(vehicleId, wheelId, rot[0], rot[1], rot[2]);
 }
-*/
 
-export int zbtGetWheelPosRot(int vehicleId, int wheelId,
+export int zbtGetWheelPosRotXYZ(int vehicleId, int wheelId,
 	float &x, float &y, float &z, float &rx, float &ry, float &rz) {
 
-	zbtGetWheelPosition(vehicleId, wheelId, x, y, z);
-	zbtGetWheelRotation(vehicleId, wheelId, rx, ry, rz);
+	zbtGetWheelPositionXYZ(vehicleId, wheelId, x, y, z);
+	zbtGetWheelRotationXYZ(vehicleId, wheelId, rx, ry, rz);
 	return DONE;
 }
 
-/*
-export int zbtGetWheelPosRotExt(int vehicleId, int wheelId, float pos[3], float rot[3]) {
-	zbtGetWheelPosition(vehicleId, wheelId, pos[0], pos[1], pos[2]);
-	zbtGetWheelRotation(vehicleId, wheelId, rot[0], rot[1], rot[2]);
+export int zbtGetWheelPosRot(int vehicleId, int wheelId, float pos[3], float rot[3]) {
+	zbtGetWheelPositionXYZ(vehicleId, wheelId, pos[0], pos[1], pos[2]);
+	zbtGetWheelRotationXYZ(vehicleId, wheelId, rot[0], rot[1], rot[2]);
 	return DONE;	
 }
-*/
 
 export int zbtDeleteRaycastVehicle(int vehicleId) {
 	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
@@ -988,12 +986,16 @@ export int zbtSetHitFraction(int collisionObjectId, float hitFraction) {
 	return DONE;
 }
 
-export int zbtGetPosition(int collisionObjectId, float &x, float &y, float &z) {
+export int zbtGetPositionXYZ(int collisionObjectId, float &x, float &y, float &z) {
 	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
 	x = co->getWorldTransform().getOrigin().getX();
 	y = co->getWorldTransform().getOrigin().getY();
 	z = co->getWorldTransform().getOrigin().getZ();
 	return DONE;
+}
+
+export int zbtGetPosition(int collisionObjectId, float pos[3]) {
+	return zbtGetPositionXYZ(collisionObjectId, pos[0], pos[1], pos[2]);
 }
 
 export int zbtSetPosition(int collisionObjectId, float x, float y, float z) {
@@ -1004,7 +1006,7 @@ export int zbtSetPosition(int collisionObjectId, float x, float y, float z) {
 	return DONE;
 }
 
-export int zbtGetRotation(int collisionObjectId, float &rx, float &ry, float &rz) {
+export int zbtGetRotationXYZ(int collisionObjectId, float &rx, float &ry, float &rz) {
 	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
 
 	co->getWorldTransform().getBasis().getEulerZYX(rz, ry, rx);
@@ -1015,6 +1017,10 @@ export int zbtGetRotation(int collisionObjectId, float &rx, float &ry, float &rz
 	return DONE;
 }
 
+export int zbtGetRotation(int collisionObjectId, float rot[3]) {
+	return zbtGetRotationXYZ(collisionObjectId, rot[0], rot[1], rot[2]);
+}
+
 export int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {
 	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
 	btTransform trans = co->getWorldTransform();
@@ -1023,14 +1029,20 @@ export int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {
 	return DONE;
 }
 
-export int zbtGetPosRot(int collisionObjectId, float &x, float &y, float &z,
+export int zbtGetPosRotXYZ(int collisionObjectId, float &x, float &y, float &z,
 	float &rx, float &ry, float &rz) {
 
-	zbtGetPosition(collisionObjectId, x, y, z);
-	zbtGetRotation(collisionObjectId, rx, ry, rz);
+	zbtGetPositionXYZ(collisionObjectId, x, y, z);
+	zbtGetRotationXYZ(collisionObjectId, rx, ry, rz);
 	return DONE;
 }
 
+export int zbtGetPosRot(int collisionObjectId, float pos[3], float rot[3]) {
+
+	zbtGetPositionXYZ(collisionObjectId, pos[0], pos[1], pos[2]);
+	zbtGetRotationXYZ(collisionObjectId, rot[0], rot[1], rot[2]);
+	return DONE;
+}
 
 // Activation and deactivation
 
