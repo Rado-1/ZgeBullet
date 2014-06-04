@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #2. Created by Rado1" Caption="Physics Demo 2" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" ScreenMode="0" CameraPosition="73.7491 30 31.0012" CameraRotation="0.05 -0.1867 0" LightPosition="0 0 0" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo2">
+<ZApplication Name="App" Comment="ZgeBullet demo #2. Created by Rado1" Caption="Physics Demo 2" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" ScreenMode="0" CameraPosition="11.7753 30 79.1286" CameraRotation="0.05 -0.0235 0" LightPosition="0 0 0" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo2">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -8,7 +8,7 @@
   http://bulletphysics.org
 
   Download Windows DLL and Android shared library from
-  http://code.google.com/p/zgebullet/downloads
+  http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/
 
   Copyright (c) 2012-2014 Radovan Cervenka
 */
@@ -105,7 +105,9 @@ int zbtDeleteAllShapes() {}
 
 // Rigid bodies
 
-int zbtAddRigidBody(float mass, int shapeId, float x, float y, float z,
+int zbtAddRigidBody(float mass, int shapeId, xptr pos, xptr rot) {}
+
+int zbtAddRigidBodyXYZ(float mass, int shapeId, float x, float y, float z,
 	float rx, float ry, float rz) {}
 
 int zbtDeleteRigidBody(int rigidBodyId) {}
@@ -268,10 +270,17 @@ int zbtResetVehicleSusp(int vehicleId) {}
 
 float zbtGetVehicleCurrentSpeed(int vehicleId) {}
 
-int zbtGetWheelPosition(int vehicleId, int wheelId, ref float x, ref float y, ref float z) {}
+int zbtGetWheelPosition(int vehicleId, int wheelId, xptr pos) {}
 
-int zbtGetWheelRotation(int vehicleId, int wheelId, ref float rx, ref float ry, ref float rz) {}
-int zbtGetWheelPosRot(int vehicleId, int wheelId,
+int zbtGetWheelPositionXYZ(int vehicleId, int wheelId, ref float x, ref float y, ref float z) {}
+
+int zbtGetWheelRotation(int vehicleId, int wheelId, xptr rot) {}
+
+int zbtGetWheelRotationXYZ(int vehicleId, int wheelId, ref float rx, ref float ry, ref float rz) {}
+
+int zbtGetWheelPosRot(int vehicleId, int wheelId,	xptr pos, xptr rot) {}
+
+int zbtGetWheelPosRotXYZ(int vehicleId, int wheelId,
 	ref float x, ref float y, ref float z, ref float rx, ref float ry, ref float rz) {}
 
 int zbtDeleteRaycastVehicle(int vehicleId) {}
@@ -284,15 +293,21 @@ int zbtSetRestitution(int collisionObjectId, float restitution) {}
 
 int zbtSetHitFraction(int collisionObjectId, float hitFraction) {}
 
-int zbtGetPosition(int collisionObjectId, ref float x, ref float y, ref float z) {}
+int zbtGetPosition(int collisionObjectId, xptr pos) {}
+
+int zbtGetPositionXYZ(int collisionObjectId, ref float x, ref float y, ref float z) {}
 
 int zbtSetPosition(int collisionObjectId, float x, float y, float z) {}
 
-int zbtGetRotation(int collisionObjectId, ref float rx, ref float ry, ref float rz) {}
+int zbtGetRotation(int collisionObjectId, xptr rot) {}
+
+int zbtGetRotationXYZ(int collisionObjectId, ref float rx, ref float ry, ref float rz) {}
 
 int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {}
 
-int zbtGetPosRot(int collisionObjectId, ref float x, ref float y, ref float z,
+int zbtGetPosRot(int collisionObjectId, xptr pos, xptr rot) {}
+
+int zbtGetPosRotXYZ(int collisionObjectId, ref float x, ref float y, ref float z,
 	ref float rx, ref float ry, ref float rz) {}
 
 // Activation and deactivation
@@ -364,7 +379,7 @@ TerrainGenOffset = rnd()*100;
 @RefreshContent(Component: TerrainMesh);
 int sh = zbtCreateHeightfieldTerrainShape(Terrain, ZBT_FLOAT, 10, 10, 0, -2, 2, ZBT_AXIS_Y_LINEAR, FALSE, FALSE);
 zbtSetShapeLocalScaling(sh, 9, 10, 9);
-int rb = zbtAddRigidBody(0, sh, 0, 0, 0, 0, 0, 0);
+int rb = zbtAddRigidBodyXYZ(0, sh, 0, 0, 0, 0, 0, 0);
 zbtSetFriction(rb, 1);
 
 // reset sphere counter
@@ -566,13 +581,7 @@ Terrain[floor((this.V.X+1)*4.9), floor((this.V.Y+1)*4.9)] = h;]]>
             <RenderMesh Mesh="SphereMesh"/>
           </OnRender>
           <OnUpdate>
-            <ZExpression Comment="Update position and rotation">
-              <Expression>
-<![CDATA[// update position and rotation
-zbtGetPosition(SphereId, CurrentModel.Position.X, CurrentModel.Position.Y, CurrentModel.Position.Z);
-zbtGetRotation(SphereId, CurrentModel.Rotation.X, CurrentModel.Rotation.Y, CurrentModel.Rotation.Z);]]>
-              </Expression>
-            </ZExpression>
+            <ZExpression Comment="Update position and rotation" Expression="zbtGetPosRot(SphereId, CurrentModel.Position, CurrentModel.Rotation);"/>
             <Condition Comment="Remove if too low" Expression="return CurrentModel.Position.Y &lt; -30;">
               <OnTrue>
                 <RemoveModel/>
@@ -583,7 +592,7 @@ zbtGetRotation(SphereId, CurrentModel.Rotation.X, CurrentModel.Rotation.Y, Curre
             <ZExpression Comment="Init">
               <Expression>
 <![CDATA[// create rigid body
-SphereId = zbtAddRigidBody(0.1, SphereShapeId, 0, 20, 0, 0, 0, 0);
+SphereId = zbtAddRigidBodyXYZ(0.1, SphereShapeId, 0, 20, 0, 0, 0, 0);
 
 // set physical properties
 zbtSetDamping(SphereId, 0.1, 0.1);
