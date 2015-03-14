@@ -13,7 +13,7 @@ Links:
 * For more information about how to build ZgeBullet Library see this [page](../../wiki/How-to-Build).
 * Download compiled versions of the library and demo projects from [here](http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/).
 * Latest changes are listed in [version history](../../wiki/Version-History).
-* It is recommended to use the latest beta release of ZGameEditor downloaded from [here](http://www.emix8.org/forum/viewforum.php?f=2)._
+* It is recommended to use the latest beta release of ZGameEditor downloaded from [here](http://www.zgameeditor.org/files/ZGameEditor_beta.zip).
 
 Demo video:
 
