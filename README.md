@@ -1,5 +1,4 @@
 # ZgeBullet
-3D physics library for the ZGameEditor
 
 **ZgeBullet** is a 3D physics library for the [ZGameEditor](http://www.zgameeditor.org) (ZGE).
 It is created as a wrapper for the [Bullet Physics Library](http://bulletphysics.org),
