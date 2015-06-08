@@ -1147,11 +1147,11 @@ EXPORT int zbtGetUserIndex(btCollisionObject* obj) {
 	return obj->getUserIndex();
 }
 
-EXPORT void zbtSetUserPointer(btCollisionObject* obj, void* pointer) {
-	obj->setUserPointer(pointer);
+EXPORT void zbtSetUserModel(btCollisionObject* obj, void* userModel) {
+	obj->setUserPointer(userModel);
 }
 
-EXPORT void* zbtGetUserPointer(btCollisionObject* obj) {
+EXPORT void* zbtGetUserModel(btCollisionObject* obj) {
 	return obj->getUserPointer();
 }
 

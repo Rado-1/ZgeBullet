@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #3. Created by Rado1" Caption="Physics Demo 3" AmbientLightColor="0.502 0.502 0.502 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="0.0945 11.517 -25.0144" CameraRotation="0.06 0.5 0" LightPosition="0 30 0" ViewportRatio="3" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo3">
+<ZApplication Name="App" Comment="ZgeBullet demo #3. Created by Rado1" Caption="Physics Demo 3" AmbientLightColor="0.502 0.502 0.502 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-3.7244 8.3467 -28.8006" CameraRotation="0.06 0.5 0" LightPosition="0 30 0" ViewportRatio="3" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo3">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -458,9 +458,9 @@ void zbtSetUserIndex(xptr obj, int index) {}
 
 int zbtGetUserIndex(xptr obj) {}
 
-void zbtSetUserPointer(xptr obj, xptr pointer) {}
+void zbtSetUserModel(xptr obj, model userModel) {}
 
-xptr zbtGetUserPointer(xptr obj) {}
+model zbtGetUserModel(xptr obj) {}
 
 
 // Collision detection

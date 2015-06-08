@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-48.0318 10 35.9576" CameraRotation="0 2.1477 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
+<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-17.179 10 57.4881" CameraRotation="0 0.0462 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -458,9 +458,9 @@ void zbtSetUserIndex(xptr obj, int index) {}
 
 int zbtGetUserIndex(xptr obj) {}
 
-void zbtSetUserPointer(xptr obj, xptr pointer) {}
+void zbtSetUserModel(xptr obj, model userModel) {}
 
-xptr zbtGetUserPointer(xptr obj) {}
+model zbtGetUserModel(xptr obj) {}
 
 
 // Collision detection
@@ -1002,12 +1002,7 @@ if(shooting){
     <RenderText Comment="FPS" TextFloatRef="App.FpsCounter" X="-0.97" Y="0.9" Scale="0.5" Align="1"/>
   </OnRender>
   <OnClose>
-    <ZExpression>
-      <Expression>
-<![CDATA[// destroy physical world
-zbtDestroyWorld();]]>
-      </Expression>
-    </ZExpression>
+    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld();"/>
   </OnClose>
   <Lights>
     <Light Position="50 50 50" Color="1 1 0 1" Kind="1"/>

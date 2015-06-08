@@ -1,4 +1,9 @@
-/*
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<ZApplication Name="App" Comment="ZgeBullet demo #4. Created by Rado1" Caption="Physics Demo 4" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="67.4337 0 43.043" CameraRotation="0 -0.1596 0" LightPosition="200 200 200" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo4">
+  <OnLoaded>
+    <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
+      <Source>
+<![CDATA[/*
   ZgeBullet Library, a wrapper for the Bullet Physics Library.
   http://bulletphysics.org
 
@@ -377,7 +382,7 @@ void zbtDeleteKinematicCharacterController(xptr controller) {}
 
 void zbtSetCharacterUpAxis(xptr controller, int axis) {}
 
-void zbtSetCharacterWalkDirection(xptr controller, 
+void zbtSetCharacterWalkDirection(xptr controller,
 	float x, float y, float z) {}
 
 void zbtSetCharacterVelocityForTimeInterval(xptr controller,
@@ -399,7 +404,7 @@ void zbtSetCharacterGravity(xptr controller, float gravity) {}
 
 void zbtSetCharacterMaxSlope(xptr controller, float slope) {}
 
-void zbtSetCharacterUseGhostSweepTest(xptr controller, 
+void zbtSetCharacterUseGhostSweepTest(xptr controller,
 	int bUseGhostObjectSweepTest) {}
 
 int zbtCharacterOnGround(xptr controller) {}
@@ -487,4 +492,244 @@ void zbtGetRayTestHitPoint(xptr outPosition) {}
 
 void zbtGetRayTestHitNormalXYZ(ref float outX, ref float outY, ref float outZ) {}
 
-void zbtGetRayTestHitNormal(xptr outNormal) {}
+void zbtGetRayTestHitNormal(xptr outNormal) {}]]>
+      </Source>
+    </ZExternalLibrary>
+    <ZLibrary Comment="Globals">
+      <Source>
+<![CDATA[// CONSTANTS
+
+// boolean
+const int FALSE = 0;
+const int TRUE = 1;
+
+// goniometric
+const float PIx2 = PI * 2.0;
+const float ROT90 = 0.25;
+
+// VARIABLES
+xptr BoxShape;
+xptr GhostShape;]]>
+      </Source>
+    </ZLibrary>
+    <ZExpression Comment="Init">
+      <Expression>
+<![CDATA[// init random seed
+setRandomSeed(getSystemTime());
+
+// init physical world
+zbtCreateWorld();
+zbtSetWorldGravity(0, -9.8, 0);
+
+// create collision shapes
+BoxShape = zbtCreateBoxShape(1,1,1);
+GhostShape = zbtCreateBoxShape(15,1,15);
+
+// spawn background
+createModel(BGModel);
+
+// spawn ghost s
+model m;
+for(int i = 0; i < 2; ++i){
+  m = createModel(GhostModel);
+  m.Shift = i * PI;
+}]]>
+      </Expression>
+    </ZExpression>
+  </OnLoaded>
+  <OnUpdate>
+    <ZExpression Comment="Update simulation and rotate camera">
+      <Expression>
+<![CDATA[// simulation step
+zbtStepSimulation(App.DeltaTime, 0, 0);
+
+// rotate camera
+float t = App.Time / 30;
+App.CameraPosition.X = cos(t * PIx2) * 80;
+App.CameraPosition.Z = sin(t * PIx2) * 80;
+App.CameraRotation.Y = t - ROT90;]]>
+      </Expression>
+    </ZExpression>
+    <Timer Comment="Spawn boxes" Interval="0.5">
+      <OnTimer>
+        <SpawnModel Model="BoxModel"/>
+      </OnTimer>
+    </Timer>
+  </OnUpdate>
+  <OnRender>
+    <UseMaterial Material="DigitsMaterial"/>
+    <RenderText Comment="FPS" TextFloatRef="App.FpsCounter" X="-0.97" Y="0.9" Scale="0.5" Align="1"/>
+  </OnRender>
+  <OnClose>
+    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld();"/>
+  </OnClose>
+  <Lights>
+    <Light Position="20 50 20" Color="1 1 0 1" SpotDirection="0 -1 0" SpotCutoff="0"/>
+  </Lights>
+  <Content>
+    <Group Comment="Artwork">
+      <Children>
+        <Group Comment="Meshes">
+          <Children>
+            <Mesh Name="BoxMesh">
+              <Producers>
+                <MeshBox/>
+              </Producers>
+            </Mesh>
+          </Children>
+        </Group>
+        <Group Comment="Bitmaps and Materials">
+          <Children>
+            <Material Name="ObjectMaterial" WireframeWidth="0" Shading="1" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1"/>
+            <Material Name="GhostMaterial" WireframeWidth="0" Shading="1" Color="1 1 1 0.2" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" Blend="2" DrawBackFace="255"/>
+            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+              <Producers>
+                <BitmapFromFile Comment="Imported from sky.png" DataWidth="16" DataHeight="128">
+                  <BitmapFile>
+<![CDATA[78DAB5D8F946C4511806E0F67D99F67ED7111189212211318C88884444242212119188881111912122464444222212119168DFF7BDAEE1F9239E0B98E59CEFBCDF1B54FD06A4DA54D6FC985A535187C2DFA6DE94377C994653D6849A3F4D8B298D7C98A82969456DEFA6DD1477BC994E53D485BA5F4D8F09F5BE983E53D88F069ECDA029187A32C3267F048D3E9A319337FE60264CEE249ABA37D326277667664CF62C9ABB35F3266BE1C6C44DE6225ABA36CB26237165564CFA2A5ABB34EB266DE3C26C9AD42DB47D6E764CCAEE99D933C9FBE8E0D41C9AA4A31373FCCFF0F3E8F7E5DF13FF2F3D0F7ADEF43CF37DC1FBA8F75DE789CE2B9E87386F759EEB7BA1EF11BF77F89EEA7BAD7940F306E719CC4B9AC734EF699EE4BC8A7958F3B6E679DD17781FC17D47F729DDD7741FE47D13F759DD97751FD77D9FFB04EC2BB40FD1BE45FB1CEE8BB08FD2BE4BFB34EDEBB80FC4BE51FB4CED4BB58FE5BE17FB64EDABB50FD7BE3DC03EFF0FB9DE52F5]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Material Name="SkyMaterial" WireframeWidth="0" Shading="1" Light="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
+              <Textures>
+                <MaterialTexture Texture="SkyBitmap" TextureScale="1 0.5 0" TextureY="0.5" TexCoords="1" Origin="0 0 0"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="GridBitmap" Width="1" Height="1" Filter="1">
+              <Producers>
+                <BitmapExpression UseBlankSource="255" Expression="Pixel = x &gt; 0.96875 || y &gt; 0.96875 ? 1 : 0;"/>
+              </Producers>
+            </Bitmap>
+            <Material Name="GridMaterial" WireframeWidth="1" Shading="1" Color="1 1 1 0.5" Light="0" Blend="1" DrawBackFace="255">
+              <Textures>
+                <MaterialTexture Texture="GridBitmap" TextureScale="10 10 1" TextureX="0.5" TextureY="0.5" TextureWrapMode="1" TexCoords="1" Origin="0 0 0"/>
+              </Textures>
+            </Material>
+            <Bitmap Name="DigitsBitmap" Width="3" Height="0">
+              <Producers>
+                <BitmapFromFile Comment="Imported from Digits.bmp" Transparency="1" DataWidth="128" DataHeight="16">
+                  <BitmapFile>
+<![CDATA[78DAED583BAE22410C7CC7E5101C8113700172726252524242324232B6F44A2A59FEB567B52BBDE07580861EB7DB2E7FBA7ABEBE7EC78F1897CBE5F57A7D3E1FFCE2B91786D8E3F18893D590CCF97CC642CD3F9FCFEBF5BAB48D4BEC4CD4839974EDF1789464E51A0576BB5D65005EDD6E37E2433DF8EBE4DFEFB7DEDEEFF7C3E130071FDAB010AB601E8DC1F356FC018294B861171273CE431833B07CBFDF6FC29F7AA49F5BE3D72DC446825DAE45316085798090EECEB73012028DD9720A0F8C54A530D56F01A7FE268229FE0C410F66CCB1D3E9B40C77C43FEA41FE43C6C69A7E39B4A3D8B204185CE714FE5620D88D26D5CDE4B7FAA9BC095FB335430054E7D5C7CAB59DD00DA6932BA5D42A483ABF22A4D8CE8A2D4BA0723666C512D86176A9C0FF027F25CC3C048477728EF4FE3A475EDF638E1BE6119AD4BC743E8D63AC916509B095F539B909FF4D2188FD070663779BB7CB4CB381ABCAA10AB72B815862B4D095065BB47590673471E3613101AA92E95D9EA86508403F52AE65CFCDA80A10D9C909FED0E65062381C9EF1B09B9400BC787F0F9ACD670B3E529DC8EB14862A7AB7B4FC3FE1AFCA8D1D58CD046FD3F2244AA294D1189210174797EDA2A6582E66D2D3ADAA0498DEE29F919CA48C852931C1FF9FF79F09AF636933461110DB8552FEC92414C815A5E13968DB42C3F3AB12607A33FF510BD1E6ADBD2E368A4D080FF1671CD38AB679556953178AF833ABFBAD99ED9BEE415509D000011E6D6E5CE8CFE84DFC1356B1E9CDF14F833B942114D831E28F99A55FF4A2BF59546D33B632E76FE45A31CD18A6E52D6C7EFF62A4C80722FEF0D735732260792C661C29A24C0526BB508AFF8411B104969F5352C263ED8C55EC66D8EADD3710E6D5A40009B8FDFE50458DD7BA147FDAA07B3AA17314881104DAE409926998AA4EBD14D8EA4347DC515F0F6C925C8AE1524233EE3E18D1D6594F99C9FD575B108AE5F7B72AFF594A3AEC18D0187DF513C9A41CD59567E43FF3DB19346017C5D1E6EDFCAE0723C527F190268C60273EBD5FBFE3278C3FFC4DB206]]>
+                  </BitmapFile>
+                </BitmapFromFile>
+              </Producers>
+            </Bitmap>
+            <Font Name="DigitsFont" Bitmap="DigitsBitmap" FirstChar="48" CharPixelWidth="12" CharPixelHeight="16"/>
+            <Material Name="DigitsMaterial" Light="0" Blend="2" ZBuffer="0" Font="DigitsFont"/>
+          </Children>
+        </Group>
+      </Children>
+    </Group>
+    <Group Comment="Models">
+      <Children>
+        <Model Name="BoxModel" Position="-33.7846 3.3394 11.3442" Category="1">
+          <Definitions>
+            <Variable Name="BoxBody" Type="9"/>
+            <Variable Name="IsOverlapping" Type="1"/>
+          </Definitions>
+          <OnSpawn>
+            <ZExpression Comment="Init">
+              <Expression>
+<![CDATA[// create rigid body
+BoxBody = zbtCreateRigidBodyXYZ(0.1, BoxShape, 0, 20, 0, 0, 0, 0);
+
+// set physical properties
+zbtSetDamping(BoxBody, 0.1, 0.1);
+zbtSetActivationState(BoxBody, TRUE);
+zbtSetSleepingThresholds(BoxBody, 0, 0);
+zbtSetLinearVelocity(BoxBody, random(0,7), 0, random(0,7));
+zbtSetAngularVelocity(BoxBody, random(0,1), random(0,1), random(0,1));
+zbtSetUserModel(BoxBody, CurrentModel);
+
+IsOverlapping = FALSE;]]>
+              </Expression>
+            </ZExpression>
+          </OnSpawn>
+          <OnUpdate>
+            <ZExpression Comment="Update position and rotation">
+              <Expression>
+<![CDATA[zbtGetPosRot(BoxBody, CurrentModel.Position, CurrentModel.Rotation);
+
+if(IsOverlapping)
+  BoxColor.Color = vector3(1,0,0);
+else
+  BoxColor.Color = vector3(1,1,1);
+
+IsOverlapping = FALSE;]]>
+              </Expression>
+            </ZExpression>
+            <Condition Comment="Remove if too low" Expression="return CurrentModel.Position.Y &lt; -30;">
+              <OnTrue>
+                <RemoveModel/>
+              </OnTrue>
+            </Condition>
+          </OnUpdate>
+          <OnRender>
+            <UseMaterial Material="ObjectMaterial"/>
+            <RenderSetColor Name="BoxColor" Color="1 1 1 1"/>
+            <RenderMesh Mesh="BoxMesh"/>
+          </OnRender>
+          <OnRemove>
+            <ZExpression Comment="Delete rigid body and shape" Expression="zbtDeleteRigidBody(BoxBody);"/>
+          </OnRemove>
+        </Model>
+        <Model Name="GhostModel" Scale="15 1 15" Category="1" RenderOrder="1">
+          <Definitions>
+            <Variable Name="GhostObject" Type="9"/>
+            <Variable Name="Shift"/>
+          </Definitions>
+          <OnSpawn>
+            <ZExpression Comment="Init">
+              <Expression>
+<![CDATA[// create ghost object
+GhostObject = zbtCreateGhostObject(GhostShape, 0,0,0, 0,0,0);
+
+// set physical properties
+zbtSetCollisionFlags(GhostObject, ZBT_CF_NO_CONTACT_RESPONSE);]]>
+              </Expression>
+            </ZExpression>
+          </OnSpawn>
+          <OnUpdate>
+            <ZExpression Comment="Update position and rotation">
+              <Expression>
+<![CDATA[// update position and rotation
+float t = App.Time * 0.5;
+CurrentModel.Position.Y = sin(t + Shift) * 15;
+
+zbtSetPosition(GhostObject,
+  CurrentModel.Position.X,
+  CurrentModel.Position.Y,
+  CurrentModel.Position.Z);
+
+// detact collisions
+for(int i = zbtGetNumOverlappingObjects(GhostObject) - 1; i >= 0 ; --i){
+  zbtGetUserModel(zbtGetOverlappingObject(GhostObject, i)).IsOverlapping = TRUE;
+}]]>
+              </Expression>
+            </ZExpression>
+          </OnUpdate>
+          <OnRender>
+            <UseMaterial Material="GhostMaterial"/>
+            <RenderMesh Mesh="BoxMesh"/>
+          </OnRender>
+          <OnRemove>
+            <ZExpression Comment="Delete rigid body and shape" Expression="zbtDeleteGhostObject(GhostObject);"/>
+          </OnRemove>
+        </Model>
+        <Model Name="BGModel" Scale="150 150 150">
+          <OnRender>
+            <UseMaterial Material="SkyMaterial"/>
+            <RenderMesh Mesh="BoxMesh"/>
+            <RenderTransformGroup Comment="Grid" Scale="0.9 0.9 0.9">
+              <Children>
+                <UseMaterial Material="GridMaterial"/>
+                <RenderMesh Mesh="BoxMesh"/>
+              </Children>
+            </RenderTransformGroup>
+          </OnRender>
+        </Model>
+      </Children>
+    </Group>
+  </Content>
+</ZApplication>

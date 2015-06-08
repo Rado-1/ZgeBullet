@@ -1231,9 +1231,10 @@ clear resources.
 *///! @}
 
 /*! @name Ghost object
-<b>Ghost Object</b> can keep track of all objects that are overlapping. By
-default, this overlap is based on the AABB. This is useful for creating a
-character controller, collision sensors/triggers, explosions etc.
+<b>Ghost Object</b> can keep track of all objects that are overlapping. This
+overlap is based on the broad-phase AABB collision detection. This is useful for
+creating a character controller, collision sensors/triggers, explosions etc.
+Usually, ghost objects use box collision shapes without rotations.
 @{
 
 @fn xptr zbtCreateGhostObject(
@@ -1541,16 +1542,17 @@ object gains energy with each bounce. Default value is 0.0.
 @param obj pointer to collision object
 @return object's user-defined index value
 
-@fn void zbtSetUserPointer(
-	xptr obj, xptr pointer)
-@brief Set user-defined pointer to collision object.
+@fn void zbtSetUserModel(
+	xptr obj, model userModel)
+@brief Set user-defined ZGE model instance to collision object.
 @param obj pointer to collision object
-@param pointer user-defined pointer value
+@param userModel ZGE model instance
 
-xptr zbtGetUserPointer(xptr obj) {}
-@brief Get user-defined pointer of collision object.
+@fn model zbtGetUserModel(
+	xptr obj)
+@brief Get user-defined ZGE model instance from collision object.
 @param obj pointer to collision object
-@return object's user-defined pointer value
+@return object's user-defined ZGE model instance
 
 *///! @}
 
