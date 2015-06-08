@@ -9,5 +9,5 @@ To run the demo application on Android, activate the menu item "Android: Build A
 
 Note: Use the libZgeBullet.so file compatible with your device. In other case, the application can crash. It is recommended to use modern (e.g., ARMv7-A compatible) devices which can achieve much better performance for large amount of objects on a scene. If you have older device, you can, for instance, decrease the number of simulated physical objects to achieve smoother movements.
 
-Have a fun!
+Have fun!
 Rado1.

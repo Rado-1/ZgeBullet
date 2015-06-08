@@ -11,11 +11,12 @@ ZgeBullet is free for commercial use and open source under the [Zlib License](ht
 
 Links:
 * Download compiled versions of the library and demo projects from [here](http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/).
+[//]: # (\if LOCAL_DOC)
 * For more information about how to build ZgeBullet Library see this [page](../../wiki/How-to-Build).
 * Latest changes are listed in [version history](../../wiki/Version-History).
+[//]: # (\endif)
 * Related [forum discussion](http://www.emix8.org/forum/viewtopic.php?t=830).
 * It is recommended to use the latest beta release of ZGameEditor downloaded from [here](http://www.zgameeditor.org/files/ZGameEditor_beta.zip).
+* [Demo video](http://www.youtube.com/watch?feature=player_embedded&v=50SliYSy6KY) (YouTube).
 
-Demo video:
-
-<a href='http://www.youtube.com/watch?feature=player_embedded&v=50SliYSy6KY' target='_blank'><img src='http://img.youtube.com/vi/50SliYSy6KY/0.jpg' width='425' height=344 /></a>
+![Screenshots](doc/pic/scr.png)

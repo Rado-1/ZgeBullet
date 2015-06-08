@@ -1,0 +1,490 @@
+/*
+  ZgeBullet Library, a wrapper for the Bullet Physics Library.
+  http://bulletphysics.org
+
+  Project home
+  https://github.com/Rado-1/ZgeBullet
+
+  Download Windows DLL and Android shared library from
+  http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/
+
+  Copyright (c) 2012-2015 Radovan Cervenka
+
+  Version: 2.0 (2015-06-08)
+*/
+
+
+// Constants
+
+// Triangle mesh types
+const int ZBT_TRIANGLE_CONVEX_HULL_MESH = 1;
+const int ZBT_TRIANGLE_CONCAVE_STATIC_MESH = 2;
+const int ZBT_TRIANGLE_CONCAVE_DEFORMABLE_MESH = 3;
+
+// Activation states
+const int ZBT_ACTIVE_TAG = 1;
+const int ZBT_ISLAND_SLEEPING = 2;
+const int ZBT_WANTS_DEACTIVATION = 3;
+const int ZBT_DISABLE_DEACTIVATION = 4;
+const int ZBT_DISABLE_SIMULATION = 5;
+
+// Default values of constraint limits
+const float ZBT_DEFAULT_HINGE_SOFTNESS = 0.9;
+const float ZBT_DEFAULT_HINGE_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_HINGE_RELAXATION_FACTOR = 1.0;
+const float ZBT_DEFAULT_CONE_TWIST_SOFTNESS = 1.0;
+const float ZBT_DEFAULT_CONE_TWIST_BIAS_FACTOR = 0.3;
+const float ZBT_DEFAULT_CONE_TWIST_RELAXATION_FACTOR = 1.0;
+
+// Vehicle tunning defaults
+const float ZBT_DEFAULT_VEHICLE_SUSP_STIFFNESS = 5.88;
+const float ZBT_DEFAULT_VEHICLE_SUSP_COMPRESSION = 0.83;
+const float ZBT_DEFAULT_VEHICLE_SUSP_DAMPING = 0.88;
+const float ZBT_DEFAULT_VEHICLE_SUSP_MAX_SUSP_TRAVEL_CM = 500.0;
+const float ZBT_DEFAULT_VEHICLE_SUSP_FORCE = 6000.0;
+const float ZBT_DEFAULT_VEHICLE_FRICTION_SLIP = 10.5;
+
+// Axes
+const int ZBT_AXIS_X_LINEAR = 0;
+const int ZBT_AXIS_Y_LINEAR = 1;
+const int ZBT_AXIS_Z_LINEAR = 2;
+const int ZBT_AXIS_X_ANGULAR = 3;
+const int ZBT_AXIS_Y_ANGULAR = 4;
+const int ZBT_AXIS_Z_ANGULAR = 5;
+
+// Collision flags
+const int ZBT_CF_STATIC_OBJECT= 1;
+const int ZBT_CF_KINEMATIC_OBJECT= 2;
+const int ZBT_CF_NO_CONTACT_RESPONSE = 4;
+const int ZBT_CF_CUSTOM_MATERIAL_CALLBACK = 8;
+const int ZBT_CF_CHARACTER_OBJECT = 16;
+//const int ZBT_CF_DISABLE_VISUALIZE_OBJECT = 32;
+const int ZBT_CF_DISABLE_SPU_COLLISION_PROCESSING = 64;
+
+
+// Functions
+
+void zbtCreateWorld() {}
+
+void zbtDestroyWorld() {}
+
+void zbtSetWorldGravity(float x, float y, float z) {}
+
+void zbtStepSimulation(float timeStep, int maxSubSteps, float fixedTimeStep) {}
+
+
+// Collision shapes
+xptr zbtCreateStaticPlaneShape(
+	float normalX, float normalY, float normalZ, float planeConstant) {}
+
+xptr zbtCreateBoxShape(float x, float y, float z) {}
+
+xptr zbtCreateSphereShape(float radius) {}
+
+xptr zbtCreateScalableSphereShape(float radius) {}
+
+xptr zbtCreateConeShape(float radius, float height) {}
+
+xptr zbtCreateCylinderShape(float radius, float height) {}
+
+xptr zbtCreateCapsuleShape(float radius, float height) {}
+
+xptr zbtCreateCompoundShape() {}
+
+xptr zbtAddChildShape(xptr compoundShape, xptr childShape,
+	float x, float y, float z, float rx, float ry, float rz) {}
+
+xptr zbtRemoveChildShape(xptr compoundShape, xptr childShape) {}
+
+xptr zbtCreateHeightfieldTerrainShape(xptr heightfieldData,
+	int width, int length, float minHeight, float maxHeight, int upAxis,
+	int bFlipQuadEdges, int bDiamondSubdivision) {}
+
+xptr zbtCreateConvexHullShape(xptr points, int numPoints) {}
+
+xptr zbtCreateMultiSphereShape(xptr positions, xptr radii, int numSpheres) {}
+
+xptr zbtCreateTriangleMeshShape(xptr triangles, int numTriangles, int meshType) {}
+
+void zbtUpdateDeformableTriangleMesh(xptr triangleMeshShape) {}
+
+void zbtSetShapeLocalScaling(xptr shape, float x, float y, float z) {}
+
+void zbtSetShapeMargin(xptr shape, float margin) {}
+
+void zbtDeleteShape(xptr shape) {}
+
+void zbtDeleteAllShapes() {}
+
+
+// Rigid bodies
+
+xptr zbtCreateRigidBodyXYZ(float mass, xptr shape,
+	float x, float y, float z, float rx, float ry, float rz) {}
+
+xptr zbtCreateRigidBody(float mass, xptr shape, xptr position, xptr rotation) {}
+
+void zbtDeleteRigidBody(xptr rigidBody) {}
+
+void zbtSetMass(xptr rigidBody, float mass) {}
+
+void zbtSetDamping(xptr rigidBody, float linearDamping, float angularDamping) {}
+
+void zbtSetLinearFactor(xptr rigidBody, float x, float y, float z) {}
+
+void zbtSetAngularFactor(xptr rigidBody, float x, float y, float z) {}
+
+void zbtSetGravity(xptr rigidBody, float x, float y, float z) {}
+
+void zbtSetLinearVelocity(xptr rigidBody, float x, float y, float z) {}
+
+void zbtGetLinearVelocity(xptr rigidBody,
+	ref float outX, ref float outY, ref float outZ) {}
+
+void zbtSetAngularVelocity(xptr rigidBody, float x, float y, float z) {}
+
+void zbtGetAngularVelocity(xptr rigidBody,
+	ref float outX, ref float outY, ref float outZ) {}
+
+void zbtApplyCentralImpulse(xptr rigidBody, float x, float y, float z) {}
+
+void zbtApplyTorqueImpulse(xptr rigidBody, float x, float y, float z) {}
+
+void zbtApplyImpulse(xptr rigidBody, float x, float y, float z,
+	float relX, float relY, float relZ) {}
+
+void zbtSetSleepingThresholds(xptr rigidBody, float linear, float angular) {}
+
+
+// Constraints and limits
+
+int zbtAreConnected(xptr rigidBodyA, xptr rigidBodyB) {}
+
+xptr zbtAddFixedConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bDisableCollision) {}
+
+xptr zbtAddPoint2PointConstraint1(xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ) {}
+
+xptr zbtAddPoint2PointConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz, int bDisableCollision) {}
+
+xptr zbtAddHingeConstraint1(xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float axisX, float axisY, float axisZ) {}
+
+xptr zbtAddHingeConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz, int bDisableCollision) {}
+
+void zbtSetHingeLimits(xptr hinge, float low, float high,
+	float softness, float biasFactor, float relaxationFactor) {}
+
+void zbtEnableHingeAngularMotor(xptr hinge, int bEnableMotor,
+	float targetVelocity, float maxMotorImpulse) {}
+
+xptr zbtAddConeTwistConstraint1(xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ) {}
+
+xptr zbtAddConeTwistConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bDisableCollision) {}
+
+void zbtSetConeTwistLimits(xptr twist, float swingSpanA, float swingSpanB,
+	float twistSpan, float damping, float softness, float biasFactor,
+	float relaxationFactor) {}
+
+void zbtEnableConeTwistMotor(xptr twist,
+	int bEnableMotor, float maxMotorImpulse,
+	float targetX, float targetY, float targetZ) {}
+
+xptr zbtAddSliderConstraint1(xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	int bUseLinearReferenceWorldFrame) {}
+
+xptr zbtAddSliderConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision) {}
+
+void zbtSetSliderLimits(xptr slider,
+	float linLower, float linUpper, float angLower, float angUpper) {}
+
+void zbtSetSliderSoftness(xptr slider,
+	float dirLin, float dirAng, float limLin, float limAng,
+	float orthoLin, float orthoAng) {}
+
+void zbtSetSliderRestitution(xptr slider,
+	float dirLin, float dirAng, float limLin, float limAng,
+	float orthoLin, float orthoAng) {}
+
+void zbtSetSliderDamping(xptr slider,
+	float dirLin, float dirAng, float limLin, float limAng,
+	float orthoLin, float orthoAng) {}
+
+void zbtEnableSliderLinearMotor(xptr slider, int bEnableMotor,
+	float targetVelocity, float maxForce) {}
+
+void zbtEnableSliderAngularMotor(xptr slider, int bEnableMotor,
+	float targetVelocity, float maxForce) {}
+
+xptr zbtAddGearConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz,
+	float ratio) {}
+
+void zbtSetGearConstraint(xptr gear,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz,
+	float ratio) {}
+
+xptr zbtAddGeneric6DofConstraint1(xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	int bUseLinearReferenceWorldFrame) {}
+
+xptr zbtAddGeneric6DofConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision) {}
+
+void zbtSetGeneric6DofLimits(xptr dof, int axis, float lower, float upper) {}
+
+void zbtSetGeneric6DofLinearLimits(xptr dof,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ) {}
+
+void zbtSetGeneric6DofAngularLimits(xptr dof,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ) {}
+
+xptr zbtAddGeneric6DofSpringConstraint1(xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	int bUseLinearReferenceWorldFrame) {}
+
+xptr zbtAddGeneric6DofSpringConstraint(xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision) {}
+
+void zbtSetGeneric6DofSpring(xptr spring,
+	int axis, int bEnableSpring, float stiffness, float damping,
+	float equilibriumPoint) {}
+
+void zbtDeleteConstraint(xptr constraint) {}
+
+
+// Raycast vehicle
+
+void zbtSetVehicleTunning(float suspStiffness, float suspCompression,
+	float suspDamping, float maxSuspTravelCm, float maxSuspForce,
+	float frictionSlip) {}
+
+xptr zbtCreateRaycastVehicle(xptr carChassis,
+	int rightAxis, int upAxis, int forwardAxis) {}
+
+int zbtAddWheel(xptr vehicle,
+	float connectionPointX, float connectionPointY, float connectionPointZ,
+	float directionX, float directionY, float directionZ,
+	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
+	float wheelRadius, float suspRestLength, int bIsFrontWheel) {}
+
+void zbtSetWheelIsFront(xptr vehicle, int wheelId, int bIsFront) {}
+
+void zbtSetWheelRadius(xptr vehicle, int wheelId, float radius) {}
+
+void zbtSetWheelRollInfluence(xptr vehicle, int wheelId, float rollInfluence) {}
+
+void zbtSetWheelFrictionSlip(xptr vehicle, int wheelId, float frictionSlip) {}
+
+void zbtSetWheelSuspRestLength(xptr vehicle, int wheelId, float suspRestLength) {}
+
+void zbtSetWheelMaxSuspTravel(xptr vehicle, int wheelId, float maxSuspTravel) {}
+
+void zbtSetWheelSuspStiffness(xptr vehicle, int wheelId, float suspStiffness) {}
+
+void zbtSetWheelDampingCompression(xptr vehicle, int wheelId,
+	float dampingCompression) {}
+
+void zbtSetWheelDampingRelaxation(xptr vehicle, int wheelId,
+	float dampingRelaxation) {}
+
+void zbtSetWheelSteering(xptr vehicle, int wheelId, float steering) {}
+
+void zbtSetWheelEngineForce(xptr vehicle, int wheelId, float force) {}
+
+void zbtSetWheelBrake(xptr vehicle, int wheelId, float brake) {}
+
+void zbtResetVehicleSusp(xptr vehicle) {}
+
+float zbtGetVehicleCurrentSpeed(xptr vehicle) {}
+
+void zbtGetWheelPositionXYZ(xptr vehicle, int wheelId,
+	ref float outX, ref float outY, ref float outZ) {}
+
+void zbtGetWheelPosition(xptr vehicle, int wheelId, xptr outPosition) {}
+
+void zbtGetWheelRotationXYZ(xptr vehicle, int wheelId,
+	ref float outRx, ref float outRy, ref float outRz) {}
+
+void zbtGetWheelRotation(xptr vehicle, int wheelId, xptr outRotation) {}
+
+void zbtGetWheelPosRotXYZ(xptr vehicle, int wheelId,
+	ref float outX, ref float outY, ref float outZ,
+	ref float outRx, ref float outRy, ref float outRz) {}
+
+void zbtGetWheelPosRot(xptr vehicle, int wheelId,
+	xptr outPosition, xptr outRotation) {}
+
+void zbtDeleteRaycastVehicle(xptr vehicle) {}
+
+
+// Ghost object
+
+xptr zbtCreateGhostObject(xptr shape,
+	float x, float y, float z, float rx, float ry, float rz) {}
+
+void zbtDeleteGhostObject(xptr ghostObject) {}
+
+int zbtGetNumOverlappingObjects(xptr ghostObject) {}
+
+xptr zbtGetOverlappingObject(xptr ghostObject, int index) {}
+
+
+// Kinematic character controller
+
+xptr zbtCreateKinematicCharacterController(
+	xptr ghostObject, float stepHeight) {}
+
+void zbtDeleteKinematicCharacterController(xptr controller) {}
+
+void zbtSetCharacterUpAxis(xptr controller, int axis) {}
+
+void zbtSetCharacterWalkDirection(xptr controller, 
+	float x, float y, float z) {}
+
+void zbtSetCharacterVelocityForTimeInterval(xptr controller,
+	float x, float y, float z, float timeInterval) {}
+
+void zbtCharacterWarp(xptr controller, float x, float y, float z) {}
+
+void zbtSetCharacterFallSpeed(xptr controller, float fallSpeed) {}
+
+void zbtSetCharacterJumpSpeed(xptr controller, float jumpSpeed) {}
+
+void zbtSetCharacterMaxJumpHeight(xptr controller, float maxJumpHeight) {}
+
+int zbtCharacterCanJump(xptr controller) {}
+
+void zbtCharacterJump(xptr controller) {}
+
+void zbtSetCharacterGravity(xptr controller, float gravity) {}
+
+void zbtSetCharacterMaxSlope(xptr controller, float slope) {}
+
+void zbtSetCharacterUseGhostSweepTest(xptr controller, 
+	int bUseGhostObjectSweepTest) {}
+
+int zbtCharacterOnGround(xptr controller) {}
+
+void zbtCharacterReset(xptr controller) {}
+
+void zbtSetCharacterUpInterpolate(xptr controller, int bInterpolate) {}
+
+
+// Collision objects (in general)
+
+void zbtSetFriction(xptr obj, float friction) {}
+
+void zbtSetRestitution(xptr obj, float restitution) {}
+
+void zbtSetHitFraction(xptr obj, float hitFraction) {}
+
+void zbtGetPositionXYZ(xptr obj,
+	ref float outX, ref float outY, ref float outZ) {}
+
+void zbtGetPosition(xptr obj, xptr outPosition) {}
+
+void zbtSetPosition(xptr obj, float x, float y, float z) {}
+
+void zbtGetRotationXYZ(xptr obj,
+	ref float outRx, ref float outRy, ref float outRz) {}
+
+void zbtGetRotation(xptr obj, xptr outRotation) {}
+
+void zbtSetRotation(xptr obj, float rx, float ry, float rz) {}
+
+void zbtGetPosRotXYZ(xptr obj,
+	ref float outX, ref float outY, ref float outZ,
+	ref float outRx, ref float outRy, ref float outRz) {}
+
+void zbtGetPosRot(xptr obj, xptr outPosition, xptr outRotation) {}
+
+void zbtSetCollisionFlags(xptr obj, int flags) {}
+
+int zbtIsActive(xptr obj) {}
+
+void zbtActivate(xptr obj, int bForceActivation) {}
+
+void zbtSetActivationState(xptr obj, int newState) {}
+
+void zbtForceActivationState(xptr obj, int newState) {}
+
+void zbtSetDeactivationTime(xptr obj, float time) {}
+
+void zbtSetUserIndex(xptr obj, int index) {}
+
+int zbtGetUserIndex(xptr obj) {}
+
+void zbtSetUserPointer(xptr obj, xptr pointer) {}
+
+xptr zbtGetUserPointer(xptr obj) {}
+
+
+// Collision detection
+
+void zbtSetIgnoreCollisionCheck(xptr objA, xptr objB,
+	int bIgnoreCollisionCheck) {}
+
+int zbtStartCollisionDetection() {}
+
+int zbtGetNextContact(xptr outObjA, xptr outObjB,
+	xptr outPosA, xptr outPosB, xptr outNormal) {}
+
+void zbtGetCollidedObjects(int contactIndex, xptr outObjA, xptr outObjB) {}
+
+int zbtIsColliding(xptr obj) {}
+
+int zbtGetNumberOfCollisions(xptr obj) {}
+
+int zbtIsCollidedWith(xptr objA, xptr objB) {}
+
+
+// Raycasting
+
+xptr zbtRayTest(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {}
+
+void zbtGetRayTestHitPointXYZ(ref float outX, ref float outY, ref float outZ) {}
+
+void zbtGetRayTestHitPoint(xptr outPosition) {}
+
+void zbtGetRayTestHitNormalXYZ(ref float outX, ref float outY, ref float outZ) {}
+
+void zbtGetRayTestHitNormal(xptr outNormal) {}

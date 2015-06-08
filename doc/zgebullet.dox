@@ -1,0 +1,1672 @@
+/*
+  Doxygen documentation to ZgeBullet Library - zgebullet.txt
+  Copyright (c) 2012-2015 Radovan Cervenka
+  Version: 2.0 (2015-06-08)
+*/
+
+
+/*! @addtogroup Constants
+@{
+
+@name Triangle mesh types
+@anchor ZBT_TRIANGLE_
+Values of @a meshType parameter from zbtCreateTriangleMeshShape() function.
+@{
+
+@var ZBT_TRIANGLE_CONVEX_HULL_MESH
+@brief Convex hull mesh.
+
+@var ZBT_TRIANGLE_CONCAVE_STATIC_MESH
+@brief Concave static mesh.
+
+@var ZBT_TRIANGLE_CONCAVE_DEFORMABLE_MESH
+@brief Concave deformable mesh.
+
+*///! @}
+
+/*! @name Activation states
+@anchor ZBT_ACTIVATION_STATES
+Values used for @a newState parameter of zbtSetActivationState() and
+zbtForceActivationState() functions.
+@{
+
+@var ZBT_ACTIVE_TAG
+@brief Object is active, so the object could be moved in a step simulation.
+Use zbtActivate(TRUE) or zbtForceActivationState(obj, ACTIVATE_TAG) to activate
+an object, not zbtSetActivationState(obj, ACTIVATE_TAG).
+
+@var ZBT_ISLAND_SLEEPING
+@brief Object and and it's island, are asleep, since Bullet sleeps objects
+per-island. You probably don't want or need to set this one manually.
+
+@var ZBT_WANTS_DEACTIVATION
+@brief An active object is trying to fall asleep, and simulation is keeping
+an eye on its velocity for the next few frames to see if it's a good candidate.
+You probably don't want or need to set this one manually.
+
+@var ZBT_DISABLE_DEACTIVATION
+@brief Object is never deactivated.
+
+@var ZBT_DISABLE_SIMULATION
+@brief Makes object deactivated forever.
+
+*///! @}
+
+/*! @name Default values of constraint limits
+@anchor ZBT_DEFAULT_
+Default values of constraint limits used by Bullet. These are used in
+zbtSetHingeLimits() and zbtSetConeTwistLimits() functions.
+@{
+
+@var ZBT_DEFAULT_HINGE_SOFTNESS
+@brief Default hinge softness.
+
+@var ZBT_DEFAULT_HINGE_BIAS_FACTOR
+@brief Default hinge bias factor.
+
+@var ZBT_DEFAULT_HINGE_RELAXATION_FACTOR
+@brief Default hinge relaxation factor.
+
+@var ZBT_DEFAULT_CONE_TWIST_SOFTNESS
+@brief Default cone twist softness.
+
+@var ZBT_DEFAULT_CONE_TWIST_BIAS_FACTOR
+@brief Default cone twist bias factor.
+
+@var ZBT_DEFAULT_CONE_TWIST_RELAXATION_FACTOR
+@brief Default cone twist relaxation factor.
+
+*///! @}
+
+/*! @name Vehicle tunning defaults
+@anchor ZBT_DEFAULT_VEHICLE_
+The default values of raycast vehicle tunning parameters used by Bullet. They
+can be used in zbtSetVehicleTunning() function.
+@{
+
+@var ZBT_DEFAULT_VEHICLE_SUSP_STIFFNESS
+@brief Default suspension stiffness.
+
+@var ZBT_DEFAULT_VEHICLE_SUSP_COMPRESSION
+@brief Default suspension compression.
+
+@var ZBT_DEFAULT_VEHICLE_SUSP_DAMPING
+@brief Default suspension damping.
+
+@var ZBT_DEFAULT_VEHICLE_SUSP_MAX_SUSP_TRAVEL_CM
+@brief Default suspension travel.
+
+@var ZBT_DEFAULT_VEHICLE_SUSP_FORCE
+@brief Default suspension force.
+
+@var ZBT_DEFAULT_VEHICLE_FRICTION_SLIP
+@brief Default friction slip.
+
+*///! @}
+
+/*! @name Axes
+@anchor ZBT_AXIS_
+Values used to determine axis. All values can be used for @a axis parameter of
+zbtSetGeneric6DofLimits() function. @c ZBT_AXIS_*_LINEAR can be used for @a
+upAxis parameter in zbtCreateHeightfieldTerrainShape() function and @a axis
+parameter of zbtSetCharacterUpAxis() function.
+@{
+
+@var ZBT_AXIS_X_LINEAR
+@brief (Linear) axis X.
+
+@var ZBT_AXIS_Y_LINEAR
+@brief (Linear) axis Y.
+
+@var ZBT_AXIS_Z_LINEAR
+@brief (Linear) axis Z.
+
+@var ZBT_AXIS_X_ANGULAR
+@brief Angular axis X.
+
+@var ZBT_AXIS_Y_ANGULAR
+@brief Angular axis Y.
+
+@var ZBT_AXIS_Z_ANGULAR
+@brief Angular axis Z.
+
+*///! @}
+
+/*! @name Collision flags
+@anchor ZBT_CF_
+Values used for @a flags parameter in zbtSetCollisionFlags() function.
+@{
+
+@var ZBT_CF_STATIC_OBJECT
+@brief Static object.
+
+@var ZBT_CF_KINEMATIC_OBJECT
+@brief Kinematic object.
+
+@var ZBT_CF_NO_CONTACT_RESPONSE
+@brief Object does not response to collisions.
+
+@var ZBT_CF_CUSTOM_MATERIAL_CALLBACK
+@brief This allows per-triangle material (friction/restitution).
+
+@var ZBT_CF_CHARACTER_OBJECT
+@brief Character object.
+
+@var ZBT_CF_DISABLE_SPU_COLLISION_PROCESSING
+@brief Disable parallel/SPU processing.
+
+*///! @}
+
+//! @} end of constants
+
+
+/*! @addtogroup Functions
+<I>Note: All angles are specified in radians / (2*PI), so interval
+[0.0, 1.0) covers whole circle (0-360 degrees).</I>
+@{
+
+
+@name World
+Functions used to manipulate and simulate physical world.
+@{
+
+@fn void zbtCreateWorld()
+@brief Create physics simulation world.
+
+@fn void zbtDestroyWorld()
+@brief Destroy physics simulation world together with all instantiated
+collision objects, constraints and collision shapes.
+
+@fn void zbtSetWorldGravity(
+	float x, float y, float z)
+@brief Set world's gravity to (x, y, z).
+@param x, y, z gravity vector
+
+@fn void zbtStepSimulation(
+	float timeStep, int maxSubSteps, float fixedTimeStep)
+@brief Proceed the simulation over time step.
+@details By default, the @a timeStep is subdivided in constant sub-steps of each
+	@a fixedTimeStep. In order to keep the simulation real-time, the maximum
+	number of sub-steps can be clamped to @a maxSubSteps. You can disable
+	subdividing the time step/sub-stepping by passing @a maxSubSteps=0, but in
+	that case you have to keep the timeStep constant.
+@param timeStep duration of simulation step in seconds
+@param maxSubSteps if > 0, it will interpolate motion between fixedTimeStep's
+@param fixedTimeStep fixed time step
+
+*///! @}
+
+
+/*! @name Collision shapes
+<b>Collision shape</b> defines geometry of physical collision objects. One
+collision shape can (and should be, if possible) be shared among several
+collision objects.
+@{
+
+@fn xptr zbtCreateStaticPlaneShape(
+	float normalX, float normalY, float normalZ, float planeConstant)
+@brief Create static plane shape.
+@param normalX, normalY, normalZ plane's normal vector
+@param planeConstant determines the distance of the plane to the origin
+@return pointer to created collision shape
+
+@fn xptr zbtCreateBoxShape(
+	float x, float y, float z)
+@brief Create box shape of half-extent (x, y, z). Created box will have size
+(x*2, y*2, z*2).
+@param x, y, z box half-extent vector
+@return pointer to created collision shape
+
+@fn xptr zbtCreateSphereShape(
+	float radius)
+@brief Create sphere shape.
+@param radius radius of sphere
+@return pointer to created collision shape
+
+@fn xptr zbtCreateScalableSphereShape(
+	float radius)
+@brief Create scalable sphere shape.
+@details The sphere can be scaled along each axis independently. Internally,
+	uses multi-sphere shape.
+@param radius radius of sphere
+@return pointer to created collision shape
+
+@fn xptr zbtCreateConeShape(
+	float radius, float height)
+@brief Create cone shape.
+@param radius radius of circular cone's base
+@param height height of cone
+@return pointer to created collision shape
+
+@fn xptr zbtCreateCylinderShape(
+	float radius, float height)
+@brief Create cylinder shape.
+@param radius radius of cylinder's base
+@param height half-extent of cylinder's height
+@return pointer to created collision shape
+
+@fn xptr zbtCreateCapsuleShape(
+	float radius, float height)
+@brief Create capsule shape.
+@param radius radius of capsule
+@param height height of capsule
+@return pointer to created collision shape
+
+@fn xptr zbtCreateCompoundShape()
+@brief Create empty compound shape.
+@return pointer to created collision shape
+
+@fn xptr zbtAddChildShape(
+	xptr compoundShape, xptr childShape,
+	float x, float y, float z,
+	float rx, float ry, float rz)
+@brief Add child shape to compound shape.
+@param compoundShape pointer to compound shape
+@param childShape pointer to child shape
+@param x, y, z position of child shape in coordinates of compound shape
+@param rx, ry, rz rotation of child shape in coordinates of compound shape
+@return pointer to compound collision shape
+
+@fn xptr zbtRemoveChildShape(
+	xptr compoundShape, xptr childShape)
+@brief Remove child shape from compound shape.
+@param compoundShape pointer to compound shape
+@param childShape pointer to child shape
+@return pointer to compound collision shape
+
+@fn xptr zbtCreateHeightfieldTerrainShape(
+	xptr heightfieldData, int width, int length,
+	float minHeight, float maxHeight, int upAxis,
+	int bFlipQuadEdges, int bDiamondSubdivision)
+@brief Create heightfield terrain shape.
+@details Its origin is in center; vertically given by (maxHeight - minHeight)/2.
+	Heightfield can be dynamic so long as the min/max height values capture the
+	extremes.
+@param heightfieldData pointer to float heightfield array maintained by ZGE
+@param width width of heightfield
+@param length length of heightfield
+@param minHeight minimal height
+@param maxHeight maximal height
+@param upAxis up axis
+@param bFlipQuadEdges 1 - flip quad edges; 0 - do not flip
+@param bDiamondSubdivision 1 - divided quads to diamonds; 0 - do not
+@return pointer to compound collision shape
+
+@fn xptr zbtCreateConvexHullShape(
+	xptr points, int numPoints)
+@brief Create convex hull shape given by array of vertices.
+@details zbtCreateConvexHullShape() makes an internal copy of the points.
+@param points pointer to array of floats; each point is given by 3 consequent
+	float values representing (x, y, z) vector
+@param numPoints number of points
+@return pointer to created collision shape
+
+@fn xptr zbtCreateMultiSphereShape(
+	xptr positions, xptr radii, int numSpheres)
+@brief Create multi sphere shape.
+@details The shape represents the convex hull of a collection of spheres.
+@param positions pointer to array of floats; each point is given by 3 consequent
+	float values representing (x, y, z) vector
+@param radii pointer to array of floats representing radii of spheres
+@param numSpheres number of spheres
+@return pointer to created collision shape
+
+@fn xptr zbtCreateTriangleMeshShape(
+	xptr triangles, int numTriangles, int meshType)
+@brief Create triangle mesh shape.
+@details Depending on @a meshType parameter, the shape can be either:
+	- convex hull of a triangle mesh (not performing as good as convex hull
+	  shape),
+	- concave static triangle mesh used only for fixed/non-moving objects, or
+	- deformable triangle mesh.
+@param triangles pointer to array of floats; each triangle is given by 3
+	consequent (x, y, z) vectors of 3 float values; 9 floats in all
+@param numTriangles number of triangles
+@param meshType type of triangle mesh; any of the @ref ZBT_TRIANGLE_* constants
+@return pointer to created collision shape
+
+@fn void zbtUpdateDeformableTriangleMesh(
+	xptr triangleMeshShape)
+@brief Update the deformable triangle mesh.
+@details Call this function when changing of the triangle array of a triangle
+	mesh shape of type @ref ZBT_TRIANGLE_CONCAVE_DEFORMABLE_MESH should take
+	effect.
+@param triangleMeshShape pointer to deformable triangle mesh shape
+
+@fn void zbtSetShapeLocalScaling(
+	xptr shape, float x, float y, float z)
+@brief Set local scaling of collision shape.
+@param shape pointer to collision shape
+@param x, y, z 3D scaling vector
+
+@fn void zbtSetShapeMargin(
+	xptr shape, float margin)
+@brief Set margin of collision shape.
+@param shape pointer to collision shape
+@param margin margin value
+
+@fn void zbtDeleteShape(
+	xptr shape)
+@brief Delete collision shape.
+@param shape pointer to deleted collision shape
+
+@fn void zbtDeleteAllShapes()
+@brief Delete all created collision shapes.
+
+*///! @}
+
+
+/*! @name Rigid bodies
+<b>Rigid body</b> is a collision object used to represent ordinary physical
+object. It keeps a pointer to a collision shape. It is recommended for
+performance and memory use to share collision shapes whenever possible. There
+are the following types of rigid bodies:
+- @b Dynamic rigid body with positive mass. Motion is controlled by rigid
+body dynamics.
+- @b Fixed object with zero mass. It is not moving (basically collision
+object).
+- @b Kinematic object, which is an object without mass, but the user can
+move it. Kinematic objects are created by calling the zbtSetCollisionFlags() function with @ref ZBT_CF_KINEMATIC_OBJECT flag.
+
+There is one-way interaction, and Bullet calculates a velocity based on
+the time step and previous and current world transform. Bullet 	automatically
+deactivates dynamic rigid bodies, when the velocity is below a threshold for a
+given time. Deactivated (sleeping) rigid bodies don't take any processing time,
+except a minor broadphase collision detection impact (to allow active objects to
+activate/wake up sleeping objects).
+@{
+
+@fn xptr zbtCreateRigidBodyXYZ(
+	float mass, xptr shape,
+	float x, float y, float z,
+	float rx, float ry, float rz)
+@brief Create rigid body.
+@details Position and rotation vectors are given by separate coordinates.
+@param mass mass of rigid body; 0.0 - fixed object, > 0.0 - dynamic object 
+@param shape pointer to collision shape used for rigid body
+@param x, y, z position of rigid body
+@param rx, ry, rz rotation of rigid body given by Euler angles
+@return pointer to created rigid body
+
+@fn xptr zbtCreateRigidBody(
+	float mass, xptr shape, xptr position, xptr rotation)
+@brief Create rigid body.
+@param mass mass of rigid body
+@param shape pointer to collision shape used for rigid body
+@param position pointer to vector3 or float[3] array representing position of
+	rigid body
+@param rotation pointer to vector3 or float[3] array representing rotation of
+	rigid body given by Euler angles
+@return pointer to created rigid body
+
+@fn void zbtDeleteRigidBody(
+	xptr rigidBody)
+@brief Delete rigid body.
+@param rigidBody pointer to deleted rigid body
+
+@fn void zbtSetMass(
+	xptr rigidBody, float mass)
+@brief Set mass of rigid body.
+@param rigidBody pointer to rigid body
+@param mass mass
+
+@fn void zbtSetDamping(
+	xptr rigidBody, float linearDamping, float angularDamping)
+@brief Set linear and angular damping of rigid body.
+@details Linear damping affects how body moves. Having linear damping at zero
+	(the default) means object will keep moving until friction slows it down. At
+	higher values, it would slow down faster. Angular damping is similar, but
+	applies to angular motion (i.e. rotation). 
+@param rigidBody pointer to rigid body
+@param linearDamping linear damping
+@param angularDamping angular damping
+
+@fn void zbtSetLinearFactor(
+	xptr rigidBody, float x, float y, float z)
+@brief Set linear factor of rigid body.
+@details Linear factor multiplies movement of a rigid body in particular
+	direction. For instance, setting linear factor to (0,1,0) allows to move
+	object only along Y axis.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of linear factor
+
+@fn void zbtSetAngularFactor(
+	xptr rigidBody, float x, float y, float z)
+@brief Set angular factor of rigid body.
+@details Angular factor multiplies rotation of a rigid body around particular
+	axis. For instance, setting angular factor to (0,1,0) allows to rotate
+	object around only Y axis.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of angular factor
+
+@fn void zbtSetGravity(
+	xptr rigidBody, float x, float y, float z)
+@brief Set gravity of rigid body.
+@details This value overrides the world's gravity applied on this body.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of gravity
+
+@fn void zbtSetLinearVelocity(
+	xptr rigidBody, float x, float y, float z)
+@brief Set linear velocity of rigid body.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of linear velocity
+
+@fn void zbtGetLinearVelocity(
+	xptr rigidBody, ref float outX, ref float outY, ref float outZ)
+@brief Get linear velocity of rigid body.
+@param rigidBody pointer to rigid body
+@param[out] outX, outY, outZ output vector of linear velocity
+
+@fn void zbtSetAngularVelocity(
+	xptr rigidBody, float x, float y, float z)
+@brief Set angular velocity of rigid body.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of angular velocity
+
+@fn void zbtGetAngularVelocity(
+	xptr rigidBody, ref float outX, ref float outY, ref float outZ)
+@brief Get angular velocity of rigid body.
+@param rigidBody pointer to rigid body
+@param[out] outX, outY, outZ output vector of angular velocity
+
+@fn void zbtApplyCentralImpulse(
+	xptr rigidBody, float x, float y, float z)
+@brief Apply central impulse to rigid body and activate it.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of impulse
+
+@fn void zbtApplyTorqueImpulse(
+	xptr rigidBody, float x, float y, float z)
+@brief Apply torque impulse to rigid body and activate it.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of torque
+
+@fn void zbtApplyImpulse(
+	xptr rigidBody, float x, float y, float z,
+	float relX, float relY, float relZ)
+@brief Apply impulse to relative position of a rigid body and activate it.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of impulse
+@param relX, relY, relZ relative position of applying impulse
+
+@fn void zbtSetSleepingThresholds(
+	xptr rigidBody, float linear, float angular)
+@brief Set sleeping thresholds of rigid body.
+@details If linear and angular velocity of a rigid body is lower than specified
+	limits, the object is deactivated, i.e., in the "sleeping" state.
+@param rigidBody pointer to rigid body
+@param linear linear sleeping threshold
+@param angular angular sleeping threshold
+
+*///! @}
+
+
+/*! @name Constraints and limits
+<b>Constraints</b> are used to connect rigid bodies together or to restrict
+movements of a single rigid body in world's space. There are various types of
+constraints and each of them offers also setting of various limits.
+@see [Illustration of constraints and description of their parameters](http://help.autodesk.com/view/MAYAUL/2015/ENU/?guid=GUID-CDB3638D-23AF-49EF-8EF6-53081EE4D39D).
+@{
+
+@fn int zbtAreConnected(
+	xptr rigidBodyA, xptr rigidBodyB)
+@brief Return 1 if two rigid bodies are connected by constraint(s); 0
+otherwise.
+@param rigidBodyA pointer to one rigid body
+@param rigidBodyB pointer to another rigid body
+@return 1 if bodies are connected, 0 otherwise
+
+@fn xptr zbtAddFixedConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bDisableCollision)
+@brief Create fixed constraint of two rigid bodies.
+@details Fixed constraint fixes mutual relative position and rotation of two
+	bodies. 
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param pivotAx, pivotAy, pivotAz local position of pivot point in body A
+@param pivotBx, pivotBy, pivotBz local position of pivot point in body B
+@param rotAx, rotAy, rotAz local orientation of cone axis in body A
+@param rotBx, rotBy, rotBz local orientation of cone axis in body B
+@param bDisableCollision if set to 0, connected bodies collide to each other,
+	if set to 1, connected bodies do not collide
+@return pointer to created constraint
+
+@fn xptr zbtAddPoint2PointConstraint1(
+	xptr rigidBody, float pivotX, float pivotY, float pivotZ)
+@brief Create point-to-point constraint of rigid body with a point in world.
+@details One connection point of "ball socket" constraint is given by pivot in
+	rigid body, another one is point in world given by the current pivot
+	position in word's space.
+@param rigidBody pointer to rigid body
+@param pivotX, pivotY, pivotZ position of pivot point in body's local space
+@return pointer to created constraint
+
+@fn xptr zbtAddPoint2PointConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz, int bDisableCollision)
+@brief Create point-to-point constraint of two rigid bodies.
+@details Connection points of "ball socket" constraint are given by local pivot
+	points in connected rigid bodies.
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param pivotAx, pivotAy, pivotAz local position of pivot point in body A
+@param pivotBx, pivotBy, pivotBz local position of pivot point in body B
+@param bDisableCollision if set to 0, connected bodies collide to each other,
+	if set to 1, connected bodies do not collide
+@return pointer to created constraint
+
+@fn xptr zbtAddHingeConstraint1(
+	xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float axisX, float axisY, float axisZ)
+@brief Create hinge constraint of rigid body with a point in world.
+@details One connection point of hinge constraint is given by pivot in rigid
+	body, another one is point in world given by the current pivot position in
+	word's space. Direction of hinge is given by axis in body's local space.
+@param rigidBody pointer to rigid body
+@param pivotX, pivotY, pivotZ position of pivot point in body's local space
+@param axisX, axisY, axisZ local orientation of hinge axis
+@return pointer to created constraint
+
+@fn xptr zbtAddHingeConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz, int bDisableCollision)
+@brief Create hinge constraint of two rigid bodies.
+@details Connection points of hinge constraint are given by pivots in connected
+	rigid bodies. Each body defines also direction of hinge given by axis in
+	body's local space.
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param pivotAx, pivotAy, pivotAz local position of pivot point in body A
+@param pivotBx, pivotBy, pivotBz local position of pivot point in body B
+@param axisAx, axisAy, axisAz local orientation of hinge axis in body A
+@param axisBx, axisBy, axisBz local orientation of hinge axis in body B
+@param bDisableCollision if set to 0, connected bodies collide to each other,
+	if set to 1, connected bodies do not collide
+@return pointer to created constraint
+
+@fn void zbtSetHingeLimits(
+	xptr hinge, float low, float high,
+	float softness, float biasFactor, float relaxationFactor)
+@brief Set limits of hinge constraint.
+@param hinge pointer to hinge constraint
+@param low minimum angle
+@param high maximum angle
+@param softness angular softness that specifies the percentage of limit where
+	the rotation is free. Beyond this softness percentage, the limit is
+	gradually enforced until the "hard" (1.0) limit is reached. The value is
+	between 0.0 and 1.0 with a default of 0.9. Recommended value is ~0.8-1.0
+@param biasFactor angular bias factor which specifies the strength with which
+	the constraint resists angular limit violation. The value is between 0.0
+	and 1.0 with a default of 0.3. Recommended value is near 0.3
+@param relaxationFactor relaxation factor which specifies how much a constraint
+	resists velocities which violate the angular limits. The lower the value,
+	the less the constraint will fight velocities which violate the angular
+	limits. The value is between 0.0 and 1.0 with a default of 1.0. Recommended
+	value is near 1.0
+
+@fn void zbtEnableHingeAngularMotor(
+	xptr hinge, int bEnableMotor, float targetVelocity, float maxMotorImpulse)
+@brief Enable/disable angular motor on hinge constraint.
+@param hinge pointer to hinge constraint
+@param bEnableMotor 1 - motor enabled; 0 - motor disabled
+@param targetVelocity target velocity
+@param maxMotorImpulse maximum motor impulse that can be applied at a single
+	simulation step. It has a value greater than or equal to 0.0
+
+@fn xptr zbtAddConeTwistConstraint1(
+	xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ)
+@brief Create cone-twist constraint of rigid body with a point in world.
+@details It is a special point-to-point constraint that adds cone and twist
+	axis limits. One connection point of cone-twist constraint is given by pivot
+	in rigid body, another one is point in world given by the current pivot
+	position in word's space. The X axis serves as twist axis. This constraints
+	can be used to simulate rag doll joints.
+@param rigidBody pointer to rigid body
+@param pivotX, pivotY, pivotZ position of pivot point in body's local space
+@param rotX, rotY, rotZ local orientation of cone axis
+@return pointer to created constraint
+
+@fn xptr zbtAddConeTwistConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, int bDisableCollision)
+@brief Create cone-twist constraint of two rigid bodies.
+@details It is a special point-to-point constraint that adds cone and twist axis
+	limits. Connection points of cone-twist constraint are given by pivots in
+	connected rigid bodies. The X axis serves as twist axis. This constraints
+	can be used to simulate rag doll joints.
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param pivotAx, pivotAy, pivotAz local position of pivot point in body A
+@param pivotBx, pivotBy, pivotBz local position of pivot point in body B
+@param rotAx, rotAy, rotAz local orientation of cone axis in body A
+@param rotBx, rotBy, rotBz local orientation of cone axis in body B
+@param bDisableCollision if set to 0, connected bodies collide to each other,
+	if set to 1, connected bodies do not collide
+@return pointer to created constraint
+
+@fn void zbtSetConeTwistLimits(
+	xptr twist, float swingSpanA, float swingSpanB,
+	float twistSpan, float damping, float softness, float biasFactor,
+	float relaxationFactor)
+@brief Set limits of cone-twist constraint.
+@param twist pointer to cone-twist constraint
+@param swingSpanA angle of swinging cone on body A
+@param swingSpanB angle of swinging cone on body B
+@param twistSpan maximal angle of twisting
+@param damping angular damping is a value between 0.0 and 1.0 with a default of
+	0.01. A value of 1.0 fully dampens the forces applied to the rotation
+@param softness angular softness that specifies the percentage of limit where
+	the rotation is free. Beyond this softness percentage, the limit is
+	gradually enforced until the "hard" (1.0) limit is reached. The value is
+	between 0.0 and 1.0 with a default of 1.0. Recommended value is ~0.8-1.0
+@param biasFactor angular bias factor which specifies the strength with which
+	the constraint resists angular limit violation. The value is between 0.0
+	and 1.0 with a default of 0.3. Recommended value is near 0.3
+@param relaxationFactor relaxation factor which specifies how much a constraint
+	resists velocities which violate the angular limits. The lower the value,
+	the less the constraint will fight velocities which violate the angular
+	limits. The value is between 0.0 and 1.0 with a default of 1.0. Recommended
+	value is near 1.0
+
+@fn void zbtEnableConeTwistMotor(
+	xptr twist, int bEnableMotor, float maxMotorImpulse,
+	float targetX, float targetY, float targetZ)
+@brief Enable/disable motor on cone-twist constraint.
+@param twist pointer to cone-twist constraint
+@param bEnableMotor 1 - motor enabled; 0 - motor disabled
+@param maxMotorImpulse maximum motor impulse that can be applied at a single
+	simulation step. It has a value greater than or equal to 0.0
+@param targetX, targetY, targetZ desired rotation of body A with respect to
+	body B. If rotation violates the joint limits, the internal target is
+	clamped to avoid conflicting impulses (very bad for stability)
+
+@fn xptr zbtAddSliderConstraint1(
+	xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	int bUseLinearReferenceWorldFrame)
+@brief Create slider constraint of rigid body with a point in world.
+@details The Slider constraint allows to rotate a rigid body around one axis and
+	translate along the same axis. One connection point of slider is given by
+	pivot in rigid body, another one is point in world given by the current
+	pivot position in word's space. Orientation of axis is specified by local
+	rotation.
+@param rigidBody pointer to rigid body
+@param pivotX, pivotY, pivotZ position of pivot point in body's local space
+@param rotX, rotY, rotZ local orientation of slider axis
+@param bUseLinearReferenceWorldFrame 1 - world point is referential for
+	transformations and limits; 0 - body is referential
+@return pointer to created constraint
+
+@fn xptr zbtAddSliderConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision)
+@brief Create slider constraint of two rigid bodies.
+@details The Slider constraint allows two rigid bodies to rotate around one axis
+	and translate along the same axis. Each end of axis is anchored in pivot
+	points of bodies and each body defines its local orientation.
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param pivotAx, pivotAy, pivotAz local position of pivot point in body A
+@param pivotBx, pivotBy, pivotBz local position of pivot point in body B
+@param rotAx, rotAy, rotAz local orientation of slider axis in body A
+@param rotBx, rotBy, rotBz local orientation of slider axis in body B
+@param bUseLinearReferenceFrameA 1 - body A is referential for transformations
+	and limits; 0 - body B is referential
+@param bDisableCollision 0 - connected bodies collide to each other;
+	1 - connected bodies do not collide
+@return pointer to created constraint
+
+@fn void zbtSetSliderLimits(
+	xptr slider,
+	float linLower, float linUpper,
+	float angLower, float angUpper)
+@brief Set limits of slider constraint.
+@param slider pointer to slider constraint
+@param linLower minimal distance of pivots
+@param linUpper maximal distance of pivots
+@param angLower minimal angle of rotation
+@param angUpper maximal angle of rotation
+
+@fn void zbtSetSliderSoftness(
+	xptr slider,
+	float dirLin, float dirAng,
+	float limLin, float limAng,
+	float orthoLin, float orthoAng)
+@brief Set softness of slider constraint.
+@details Softness specifies the percentage of limit where the movement is free.
+	Beyond this softness percentage, the limit is gradually enforced until the
+	"hard" (1.0) limit is reached. The value is between 0.0 and 1.0.
+@param slider pointer to slider constraint
+@param dirLin moving inside linear limits
+@param dirAng moving inside angular limits
+@param limLin hitting linear limit
+@param limAng hitting angular limit
+@param orthoLin against constraint axis
+@param orthoAng against constraint axis
+
+@fn void zbtSetSliderRestitution(
+	xptr slider,
+	float dirLin, float dirAng,
+	float limLin, float limAng,
+	float orthoLin, float orthoAng)
+@brief Set restitution of slider constraint.
+@details Restitution specifies a positive number between 0.0 and 1.0
+	representing the ratio of speeds after and before an impact, taken along the
+	line of the impact. Restitution 1 means elastic collision, while restitution
+	< 1 represent inelastic collision. For restitution 0, the objects
+	effectively "stop".
+at the collision, not bouncing at all.
+@param slider pointer to slider constraint
+@param dirLin moving inside linear limits
+@param dirAng moving inside angular limits
+@param limLin hitting linear limit
+@param limAng hitting angular limit
+@param orthoLin against constraint axis
+@param orthoAng against constraint axis
+
+@fn void zbtSetSliderDamping(
+	xptr slider,
+	float dirLin, float dirAng,
+	float limLin, float limAng,
+	float orthoLin, float orthoAng)
+@brief Set damping of slider constraint.
+@details Linear damping affects how body moves. Having linear damping at 0 means
+	object will keep moving until friction slows it down. At higher values, it
+	would slow down faster. Angular damping is similar, but applies to angular
+	motion (i.e. rotation).
+@param slider pointer to slider constraint
+@param dirLin moving inside linear limits
+@param dirAng moving inside angular limits
+@param limLin hitting linear limit
+@param limAng hitting angular limit
+@param orthoLin against constraint axis
+@param orthoAng against constraint axis
+
+@fn void zbtEnableSliderLinearMotor(
+	xptr slider, int bEnableMotor,
+	float targetVelocity, float maxForce)
+@brief Enable/disable linear motor on slider constraint.
+@param slider pointer to slider constraint
+@param bEnableMotor 1 - motor enabled; 0 - motor disabled
+@param targetVelocity target linear velocity
+@param maxForce specifies the maximum motor impulse that can be applied at a
+	single simulation step. It has a value greater than or equal to 0.0
+
+@fn void zbtEnableSliderAngularMotor(
+	xptr slider, int bEnableMotor,
+	float targetVelocity, float maxForce)
+@brief Enable/disable angular motor on slider constraint.
+@param slider pointer to slider constraint
+@param bEnableMotor 1 - motor enabled; 0 - motor disabled
+@param targetVelocity target angular velocity
+@param maxForce specifies the maximum motor impulse that can be applied at a
+	single simulation step. It has a value greater than or equal to 0.0
+
+@fn xptr zbtAddGearConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz,
+	float ratio)
+@brief Create gear constraint of two rigid bodies.
+@details Gear constraint couples the angular velocity for two bodies around
+	given local axis and ratio.
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param axisAx, axisAy, axisAz orientation of axis in body A
+@param axisBx, axisBy, axisBz orientation of axis in body B
+@param ratio ratio of rotation of body B to rotation of body A
+@return pointer to created constraint
+
+@fn void zbtSetGearConstraint(
+	xptr gear,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz,
+	float ratio)
+@brief Modify parameters of gear constraint.
+@param gear pointer to gear constraint
+@param axisAx, axisAy, axisAz orientation of axis in body A
+@param axisBx, axisBy, axisBz orientation of axis in body B
+@param ratio ratio of rotation of body B to rotation of body A
+	
+@fn xptr zbtAddGeneric6DofConstraint1(
+	xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	int bUseLinearReferenceWorldFrame)
+@brief Create Six Degrees-Of-Freedom constraint of rigid body with a point
+in world.
+@details The Six Degrees-Of-Freedom (SixDOF) constraint can emulate a variety of
+	standard constraints if each of the six Degrees of Freedom (DOF) is
+	configured. The first 3 DOFs axis are linear axis, which represent the
+	translation of rigid bodies, while the latter 3 DOFs axis represent the
+	angular motion. Each axis can be locked, free, or limited. By default, all
+	axes are unlocked.
+@n One connection point of SixDOF constraint is given by pivot in rigid body,
+another one is point in world given by the current pivot position in
+word's space.
+@param rigidBody pointer to rigid body
+@param pivotX, pivotY, pivotZ position of pivot point in body's local space
+@param rotX, rotY, rotZ local orientation of rotation axis
+@param bUseLinearReferenceWorldFrame 1 - world point is referential for
+	transformations and limits; 0 - body is referential
+@return pointer to created constraint
+
+@fn xptr zbtAddGeneric6DofConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision)
+@brief Create Six Degrees-Of-Freedom constraint of two rigid bodies.
+@details The Six Degrees-Of-Freedom (SixDOF) constraint can emulate a variety of
+	standard constraints if each of the six Degrees of Freedom (DOF) is
+	configured. The first 3 DOFs axis are linear axis, which represent the
+	translation of rigid bodies, while the latter 3 DOFs axis represent the
+	angular motion. Each axis can be locked, free, or limited. By default, all axes are unlocked.
+@n Each end of SixDOF axis is anchored in pivot points of bodies and each body
+defines its local orientation.
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param pivotAx, pivotAy, pivotAz local position of pivot point in body A
+@param pivotBx, pivotBy, pivotBz local position of pivot point in body B
+@param rotAx, rotAy, rotAz local orientation of axis in body A
+@param rotBx, rotBy, rotBz local orientation of axis in body B
+@param bUseLinearReferenceFrameA 1 - body A is referential for transformations
+	and limits; 0 - body B is referential
+@param bDisableCollision 0 - connected bodies collide to each other;
+	1 - connected bodies do not collide
+@return pointer to created constraint
+
+@fn void zbtSetGeneric6DofLimits(
+	xptr dof, int axis, float lower, float upper)
+@brief Set limits of SixDOF constraint.
+@param dof pointer to SixDOF constraint
+@param axis 0-2 are linear, 3-5 are angular
+@param lower lower bound
+@param upper upper bound
+
+@fn void zbtSetGeneric6DofLinearLimits(
+	xptr dof,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ)
+@brief Set linear limits of SixDOF constraint.
+@param dof pointer to SixDOF constraint
+@param lowerX, lowerY, lowerZ lower linear limits for each direction
+@param upperX, upperY, upperZ lower linear limits for each direction
+
+@fn void zbtSetGeneric6DofAngularLimits(
+	xptr dof,
+	float lowerX, float lowerY, float lowerZ,
+	float upperX, float upperY, float upperZ)
+@brief Set angular limits of SixDOF constraint.
+@param dof pointer to SixDOF constraint
+@param lowerX, lowerY, lowerZ lower angular limits for each direction
+@param upperX, upperY, upperZ lower angular limits for each direction
+
+@fn xptr zbtAddGeneric6DofSpringConstraint1(
+	xptr rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	int bUseLinearReferenceWorldFrame)
+@brief Create Spring Six Degrees-Of-Freedom constraint of rigid body with a point
+in world.
+@details The Spring Six Degrees-Of-Freedom (SpringSixDOF) constraint is a
+	variant of the Six Degrees-of-Freedom constraint that includes the addition
+	of springs for each of the degrees of freedom.
+	@n One connection point of SpringSixDOF constraint is given by pivot in
+	rigid body, another one is point in world given by the current pivot
+	position in word's space.
+@param rigidBody pointer to rigid body
+@param pivotX, pivotY, pivotZ position of pivot point in body's local space
+@param rotX, rotY, rotZ local orientation of rotation axis
+@param bUseLinearReferenceWorldFrame 1 - world point is referential for
+	transformations and limits; 0 - body is referential
+@return pointer to created constraint
+
+@fn xptr zbtAddGeneric6DofSpringConstraint(
+	xptr rigidBodyA, xptr rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz,
+	int bUseLinearReferenceFrameA, int bDisableCollision)
+@brief Create Spring Six Degrees-Of-Freedom constraint of two rigid bodies.
+@details The Spring Six Degrees-Of-Freedom (SpringSixDOF) constraint is a
+	variant of the Six Degrees-of-Freedom constraint that includes the addition
+	of springs for each of the degrees of freedom.
+	@n Each end of SpringSixDOF axis is anchored in pivot points of bodies and
+	each body defines its local orientation.
+@param rigidBodyA pointer to rigid body A
+@param rigidBodyB pointer to rigid body B
+@param pivotAx, pivotAy, pivotAz local position of pivot point in body A
+@param pivotBx, pivotBy, pivotBz local position of pivot point in body B
+@param rotAx, rotAy, rotAz local orientation of axis in body A
+@param rotBx, rotBy, rotBz local orientation of axis in body B
+@param bUseLinearReferenceFrameA 1 - body A is referential for transformations
+	and limits; 0 - body B is referential
+@param bDisableCollision 0 - connected bodies collide to each other;
+	1 - connected bodies do not collide
+@return pointer to created constraint
+
+@fn void zbtSetGeneric6DofSpring(
+	xptr spring,
+	int axis, int bEnableSpring, float stiffness, float damping,
+	float equilibriumPoint)
+@brief Set limits of SpringSixDOF constraint.
+@param spring pointer to SpringSixDOF constraint
+@param axis axis of spring; 0-2 are linear, 3-5 are angular
+@param bEnableSpring 0 - spring is disabled; 1 - spring is enabled
+@param stiffness stiffness of spring
+@param damping damping of spring
+@param equilibriumPoint spring equilibrium point
+
+@fn void zbtDeleteConstraint(
+	xptr constraint)
+@brief Delete constraint.
+@param constraint pointer to deleted constraint
+
+*///! @}
+
+
+/*! @name Raycast vehicle
+<b>Raycast vehicle</b> is a special constraint that turns a rigid body into a
+vehicle.
+@{
+
+@fn void zbtSetVehicleTunning(
+	float suspStiffness, float suspCompression,
+	float suspDamping, float maxSuspTravelCm, float maxSuspForce,
+	float frictionSlip)
+@brief Set vehicle tuning parameters.
+@details These parameters are used for creation new raycast vehicle wheels,
+	so call this function before calling zbtAddWheel(). If tuning parameters
+	are not set by this function, the default values are used for creating
+	wheels.
+@param suspStiffness suspension stiffness (10.0 - off-road or buggy,
+	50.0 - sports car, 200.0 - F1 car); default value is 5.88
+@param suspCompression damping coefficient for the suspension compression; set
+	to <I>k * 2.0 * sqrt(suspStiffness)</I> so k is proportional to critical
+	damping; k = 0.0 undamped & bouncy, k = 1.0 critical damping - 0.1 to 0.3
+	are good values; default value is 0.83
+@param suspDamping damping coefficient for when the suspension is expanding; see
+	the comments for suspCompression for how to set k. suspDamping should be
+	slightly larger than suspCompression, e.g. 0.2 to 0.5; default value is 0.88
+@param maxSuspTravelCm maximum distance the suspension can be compressed
+	(centimetres); default value is 500.0
+@param maxSuspForce maximal suspension force applied to the chassis and keeping
+	it from hitting the ground; default value is 6000.0
+@param frictionSlip coefficient of friction between the tire and the ground;
+	should be about 0.8 for realistic cars, but can increased for better
+	handling; set large (10000.0) for kart racers; default is 10.5
+
+@fn xptr zbtCreateRaycastVehicle(
+	xptr carChassis, int rightAxis, int upAxis, int forwardAxis)
+@brief Create raycast vehicle.
+@param carChassis pointer to rigid body that represents chassis
+@param rightAxis linear axis of right vehicle side
+@param upAxis linear axis of vehicle up side
+@param forwardAxis linear axis of vehicle forward side
+@return pointer to created raycast vehicle
+
+@fn int zbtAddWheel(
+	xptr vehicle,
+	float connectionPointX, float connectionPointY, float connectionPointZ,
+	float directionX, float directionY, float directionZ,
+	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
+	float wheelRadius, float suspRestLength, int bIsFrontWheel)
+@brief Adds wheel to raycast vehicle.
+@param vehicle pointer to raycast vehicle
+@param connectionPointX, connectionPointY, connectionPointZ point of connecting
+	the wheel to the chassis expressed in chassis local space
+@param directionX, directionY, directionZ direction of ray cast (wheel bottom)
+	in chassis local space
+@param wheelAxleX, wheelAxleY, wheelAxleZ direction of the wheel's axle in
+	chassis local space; the wheel rotates around this axis
+@param wheelRadius radius of the wheel
+@param suspRestLength maximum length of suspension (meters)
+@param bIsFrontWheel 0 - not a front wheel; 1 - is front wheel; front wheel is
+	used to apply engine force or steering
+@return index of created wheel
+
+@fn void zbtSetWheelIsFront(
+	xptr vehicle, int wheelId, int bIsFront)
+@brief Set whether the wheel is a front wheel.
+@details Front wheel is used to apply engine force or steering.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param bIsFront 0 - not a front wheel; 1 - is front wheel
+
+@fn void zbtSetWheelRadius(
+	xptr vehicle, int wheelId, float radius)
+@brief Set wheel's radius.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param radius radius of wheel
+
+@fn void zbtSetWheelRollInfluence(
+	xptr vehicle, int wheelId, float rollInfluence)
+@brief Set wheel's roll influence.
+@details Roll influence reduces the rolling torque applied from the wheels that
+	cause the vehicle to roll over. 0.0 = no roll, 1.0 = physical behavior. If
+	friction slip is too high, you'll need to reduce this to stop the vehicle
+	rolling over. You should also try lowering the vehicle's center of mass.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param rollInfluence wheel roll influence
+
+@fn void zbtSetWheelFrictionSlip(
+	xptr vehicle, int wheelId, float frictionSlip)
+@brief Set wheel's friction slip.
+@details Friction slip is the coefficient of friction between the tire and the
+	ground. Should be about 0.8 for realistic cars, but can increased for better
+	handling. Set large (10000.0) for kart racers.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param frictionSlip wheel friction slip
+
+@fn void zbtSetWheelSuspRestLength(
+	xptr vehicle, int wheelId, float suspRestLength)
+@brief Set wheel's maximum length of suspension.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param suspRestLength maximum length of suspension (meters)
+
+@fn void zbtSetWheelMaxSuspTravel(
+	xptr vehicle, int wheelId, float maxSuspTravel)
+@brief Set wheel's maximum suspension travel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param maxSuspTravel maximum distance the suspension can be compressed
+	(centimeters)
+
+@fn void zbtSetWheelSuspStiffness(
+	xptr vehicle, int wheelId, float suspStiffness)
+@brief Set wheel's suspension stiffness.
+@details 10.0 - off-road or buggy, 50.0 - sports car, 200.0 - F1 car
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param suspStiffness wheel suspension stiffness
+
+@fn void zbtSetWheelDampingCompression(
+	xptr vehicle, int wheelId, float dampingCompression)
+@brief Set wheel's damping compression.
+@details Damping compression is a coefficient for suspension compression. Set to
+	k * 2.0 * sqrt(suspension stiffness) so k is proportional to critical
+	damping. k = 0.0 undamped & bouncy, k = 1.0 critical damping; 0.1 to 0.3 are
+	good values.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param dampingCompression wheel damping compression
+
+@fn void zbtSetWheelDampingRelaxation(
+	xptr vehicle, int wheelId, float dampingRelaxation)
+@brief Set wheel's damping relaxation.
+@details Damping  relaxation is a coefficient for suspension expanding. See the
+	comments for zbtSetWheelDampingCompression() for how to set k. Wheel damping
+	relaxation should be slightly larger than wheel damping compression,
+	e.g. 0.2 to 0.5.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param dampingRelaxation wheel damping relaxation
+
+@fn void zbtSetWheelSteering(
+	xptr vehicle, int wheelId, float steering)
+@brief Set wheel's steering angle.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param steering angle of the wheels relative to the vehicle
+
+@fn void zbtSetWheelEngineForce(
+	xptr vehicle, int wheelId, float engineForce)
+@brief Set wheel's engine force.
+@details This is amount of torque applied to the wheel which provides the
+	vehicle's acceleration.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param engineForce engine force applied to wheel
+
+@fn void zbtSetWheelBrake(
+	xptr vehicle, int wheelId, float brake)
+@brief Set wheel's brake amount.
+@details This is amount of braking torque applied to the wheel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param brake amount of braking torque applied to wheel
+
+@fn void zbtResetVehicleSusp(
+xptr vehicle)
+@brief Reset suspension for all wheels.
+@param vehicle pointer to raycast vehicle
+
+@fn float zbtGetVehicleCurrentSpeed(
+	xptr vehicle)
+@brief Get the current speed/velocity of raycast vehicle
+@param vehicle pointer to raycast vehicle
+@return the current vehicle speed; positive if velocity vector has same 
+	direction as forward vector (km/h)
+
+@fn void zbtGetWheelPositionXYZ(
+	xptr vehicle, int wheelId,
+	ref float outX, ref float outY, ref float outZ)
+@brief Get the current position of wheel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param[out] outX, outY, outZ output vector of wheel position in the world space
+
+@fn void zbtGetWheelPosition(
+	xptr vehicle, int wheelId, xptr outPosition)
+@brief Get the current position of wheel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param[out] outPosition pointer to vec3 set to the wheel position in the world
+	space
+
+@fn void zbtGetWheelRotationXYZ(
+	xptr vehicle, int wheelId,
+	ref float outRx, ref float outRy, ref float outRz)
+@brief Get the current rotation of wheel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param[out] outRx, outRy, outRz output vector of wheel rotation in the world
+	space
+
+@fn void zbtGetWheelRotation(
+	xptr vehicle, int wheelId, xptr outRotation)
+@brief Get the current rotation of wheel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param[out] outRotation pointer to vec3 set to the wheel rotation in the world
+	space
+
+@fn void zbtGetWheelPosRotXYZ(
+	xptr vehicle, int wheelId,
+	ref float outX, ref float outY, ref float outZ,
+	ref float outRx, ref float outRy, ref float outRz)
+@brief Get the current position and rotation of wheel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param[out] outX, outY, outZ output vector of wheel position in the world space
+@param[out] outRx, outRy, outRz output vector of wheel rotation in the world
+	space
+
+@fn void zbtGetWheelPosRot(
+	xptr vehicle, int wheelId,
+	xptr outPosition, xptr outRotation)
+@brief Get the current position and rotation of wheel.
+@param vehicle pointer to raycast vehicle
+@param wheelId index of wheel
+@param[out] outPosition pointer to vec3 set to the wheel position in the world
+	space
+@param[out] outRotation pointer to vec3 set to the wheel rotation in the world
+	space
+
+@fn void zbtDeleteRaycastVehicle(
+	xptr vehicle)
+@brief Delete raycast vehicle.
+@details This function must be called before zbtDestroyWorld() explicitly to
+clear resources.
+@param vehicle pointer to raycast vehicle
+
+*///! @}
+
+/*! @name Ghost object
+<b>Ghost Object</b> can keep track of all objects that are overlapping. By
+default, this overlap is based on the AABB. This is useful for creating a
+character controller, collision sensors/triggers, explosions etc.
+@{
+
+@fn xptr zbtCreateGhostObject(
+	xptr shape,
+	float x, float y, float z,
+	float rx, float ry, float rz)
+@brief Create ghost object.
+@param shape pointer to collision shape used for ghost object
+@param x, y, z position of ghost object
+@param rx, ry, rz rotation of ghost object given by Euler angles
+@return pointer to created ghost object
+
+@fn void zbtDeleteGhostObject(
+	xptr ghostObject)
+@brief Delete ghost object.
+@param ghostObject pointer to ghost object
+
+@fn int zbtGetNumOverlappingObjects(
+	xptr ghostObject)
+@brief Get number of collision objects overlapping the ghost object.
+@param ghostObject pointer to ghost object
+@return number of overlapping colision objects
+
+@fn xptr zbtGetOverlappingObject(
+	xptr ghostObject, int index)
+@brief Get i-th collision object overlapping with ghost object.
+@param ghostObject pointer to ghost object
+@param index index to overlapping collision object;
+	0<= index < zbtGetNumOverlappingObjects(ghostObject)
+@return pointer to overlapping collision object
+
+*///! @}
+
+
+/*! @name Kinematic character controller
+<b>Kinematic character controller</b> is an object that supports a sliding
+motion in a world.
+
+It uses a ghost object with convex collision shape and convex sweep test to test
+for upcoming collisions. This is combined with discrete collision detection to
+recover from penetrations. Interaction between kinematic character controller
+and dynamic rigid bodies needs to be explicity implemented by the user.
+@{
+
+@fn xptr zbtCreateKinematicCharacterController(
+	xptr ghostObject, float stepHeight)
+@brief Create kinematic character controller.
+@details The specified ghost object is used to represent a simplified body of
+character and to detect collisions. It must have a convex collision shape;
+usually a capsule. Axis Y is up by default.
+@param ghostObject pointer to the used ghost object
+@param stepHeight height of step
+@return pointer to created kinematic character controller
+
+@fn void zbtDeleteKinematicCharacterController(
+	xptr controller)
+@brief Delete kinematic character controller.
+@details This function must be called before zbtDestroyWorld() explicitly to
+clear resources.
+@param controller pointer to kinematic character controller
+
+@fn void zbtSetCharacterUpAxis(
+	xptr controller, int axis)
+@brief Set up axis of kinematic character controller.
+@param controller pointer to kinematic character controller
+@param axis linear axis representing the up axis of character
+
+@fn void zbtSetCharacterWalkDirection(
+	xptr controller, float x, float y, float z)
+@brief Set walking direction of kinematic character controller.
+@details This is neither a direction nor a velocity, but the amount to increment
+the position each simulation iteration, regardless of dt. This call will reset
+any velocity set by zbtSetCharacterVelocityForTimeInterval().
+@param controller pointer to kinematic character controller
+@param x, y, z vector of walking direction
+
+@fn void zbtSetCharacterVelocityForTimeInterval(
+	xptr controller, float x, float y, float z, float timeInterval)
+@brief Set velocity of kinematic character controller for given time interval.
+@details Caller provides a velocity with which the character should move for the
+given time period. After the time period, velocity is reset to zero. This call
+will reset any walk direction set by zbtSetWalkDirection(). Negative time
+intervals will result in no motion.
+@param controller pointer to kinematic character controller
+@param x, y, z vector of velocity in all directions
+@param timeInterval time interval of moving
+
+@fn void zbtCharacterWarp(
+	xptr controller, float x, float y, float z)
+@brief Moves kinematic character controller to the specified position.
+@param controller pointer to kinematic character controller
+@param x, y, z new position
+
+@fn void zbtSetCharacterFallSpeed(
+	xptr controller, float fallSpeed)
+@brief Set fall speed of kinematic character controller.
+@param controller pointer to kinematic character controller
+@param fallSpeed fall speed
+
+@fn void zbtSetCharacterJumpSpeed(
+	xptr controller, float jumpSpeed)
+@brief Set jump speed of kinematic character controller.
+@param controller pointer to kinematic character controller
+@param jumpSpeed jump speed
+	
+@fn void zbtSetCharacterMaxJumpHeight(
+	xptr controller, float maxJumpHeight) {}
+@brief Set maximal jump height of kinematic character controller.
+@param controller pointer to kinematic character controller
+@param maxJumpHeight maximal jump height
+
+@fn int zbtCharacterCanJump(
+	xptr controller)
+@brief Returns 1 if kinematic character controller can jump.
+@param controller pointer to kinematic character controller
+@return 1 - can jump; 0 - cannot jump (e.g. is over the ground)
+
+@fn void zbtCharacterJump(
+	xptr controller)
+@brief Activate jumping of kinematic character controller.
+@param controller pointer to kinematic character controller
+
+@fn void zbtSetCharacterGravity(
+	xptr controller, float gravity)
+@brief Set gravity of kinematic character controller.
+@details Gravity scalar represents slowdown of vertical velocity during jumping.
+@param controller pointer to kinematic character controller
+@param gravity gravity
+
+@fn void zbtSetCharacterMaxSlope(
+	xptr controller, float slope)
+@brief Set maximal slope angle for kinematic character controller.
+@details The max slope determines the maximum angle that the controller can walk
+up.
+@param controller pointer to kinematic character controller
+@param slope maximal slope angle
+
+@fn void zbtSetCharacterUseGhostSweepTest(
+	xptr controller, int bUseGhostObjectSweepTest)
+@brief Set usage of either ghost object's or world's convex sweep test for
+collision detection of kinematic character controller.
+@details Usage of ghost object collision detection is faster. This is the
+default setting for kinematic character controller.
+@param controller pointer to kinematic character controller
+@param bUseGhostObjectSweepTest 0 - do not use, 1 - use
+
+fn@ int zbtCharacterOnGround(
+	xptr controller)
+@brief Return 1 if kinematic character controller is on ground.
+@param controller pointer to kinematic character controller
+@return 0 - not on ground, 1 - on ground
+
+@fn void zbtCharacterReset(
+	xptr controller)
+@brief Reset moving of kinematic character controller
+@param controller pointer to kinematic character controller
+
+@fn void zbtSetCharacterUpInterpolate(
+	xptr controller, int bInterpolate)
+@brief Set usage of vertical position interpolation when kinematic character
+controller hit.
+@details Position interpolation is used by kinematic character controller by
+default.
+@param controller pointer to kinematic character controller
+@param bInterpolate 0 - do not use interpolation, 1 - use interpolation
+interpolation
+
+*///! @}
+
+
+/*! @name Collision objects (in general)
+Functions used commonly by all kinds of collision objects; rigid bodies and
+ghost objects. Some more kinds of collision objects can come in future, e.g., soft
+bodies.
+@{
+
+@fn void zbtSetFriction(
+	xptr obj, float friction)
+@brief Set friction of collision object.
+@details Friction is the force resisting the relative motion of objects sliding
+against each other. It should be greater than 0. Low values (near to 0) make
+objects slick. Higher values restrict object sliding, but enable their spinning
+on hit. Default value is 0.5.
+@param obj pointer to collision object
+@param friction friction of object
+
+@fn void zbtSetRestitution(
+	xptr obj, float restitution)
+@brief Set restitution of collision object.
+@details Restitution determines object's "bounciness". Value 0 means that
+object doesn’t bounce at all. With a value between 0 and 1, the object bounces,
+but with each bounce loses part of its energy. With a value of more than 1, the
+object gains energy with each bounce. Default value is 0.0.
+@param obj pointer to collision object
+@param restitution restitution of object
+
+@fn void zbtGetPositionXYZ(
+	xptr obj, ref float outX, ref float outY, ref float outZ)
+@brief Get position of collision object.
+@param obj pointer to collision object
+@param[out] outX, outY, outZ output vector of object's position in the world
+	space
+
+@fn void zbtGetPosition(
+	xptr obj, xptr outPosition)
+@brief Get position of collision object.
+@param obj pointer to collision object
+@param[out] outPosition pointer to vec3 set to the position of object in the
+	world space
+	
+@fn void zbtSetPosition(
+	xptr obj, float x, float y, float z)
+@brief Set position of collision object.
+@param obj pointer to collision object
+@param x, y, z position of object
+
+@fn void zbtGetRotationXYZ(
+	xptr obj, ref float outRx, ref float outRy, ref float outRz)
+@brief Get rotation of collision object.
+@param obj pointer to collision object
+@param[out] outRx, outRy, outRz output vector of object's rotation
+
+@fn void zbtGetRotation(
+	xptr obj, xptr outRotation)
+@brief Get rotation of collision object.
+@param obj pointer to collision object
+@param[out] outRotation pointer to vec3 set to the rotation of object
+
+@fn void zbtSetRotation(
+	xptr obj, float rx, float ry, float rz)
+@brief Set rotation of collision object.
+@param obj pointer to collision object
+@param rx, ry, rz rotation of object
+
+@fn void zbtGetPosRotXYZ(
+	xptr obj,
+	ref float outX, ref float outY, ref float outZ,
+	ref float outRx, ref float outRy, ref float outRz)
+@brief Get position and rotation of collision object.
+@param obj pointer to collision object
+@param[out] outX, outY, outZ output vector of object's position in the world
+	space
+@param[out] outRx, outRy, outRz output vector of object's rotation
+
+@fn void zbtGetPosRot(
+	xptr obj, xptr outPosition, xptr outRotation)
+@brief Get position and rotation of collision object.
+@param obj pointer to collision object
+@param[out] outPosition pointer to vec3 set to the position of object in the
+	world space
+@param[out] outRotation pointer to vec3 set to the rotation of object
+
+@fn void zbtSetCollisionFlags(
+	xptr obj, int flags)
+@brief Set collision flags of collision object.
+@details Collision flags are defined by \ref ZBT_CF_* constants.
+@param obj pointer to collision object
+@param flags collision flags; more flags are connected by binary or (|) operator
+
+@fn int zbtIsActive(
+	xptr obj)
+@brief Is collision object active?
+@param obj pointer to collision object
+@return 0 - object is inactive ("sleeping" waits for broadphase collision);
+	1 - object is active
+
+@fn void zbtActivate(
+	xptr obj, int bForceActivation)
+@brief Activate collision object.
+@param obj pointer to collision object
+@param bForceActivation 0 - activate only non-static or non-kinematic object;
+	1 - force activation of any collision object
+
+@fn void zbtSetActivationState(
+	xptr obj, int newState)
+@brief Set activation state of collision object.
+@details New state is applied only if activation state does not contain flags
+	ZBT_DISABLE_DEACTIVATION or ZBT_DISABLE_SIMULATION..
+@param obj pointer to collision object
+@param newState any or several (connected by | operator) of [these constants]
+	(@ref ZBT_ACTIVATION_STATES)
+
+@fn void zbtForceActivationState(
+	xptr obj, int newState)
+@brief Force setting of the specified activation state for collision object.
+@param obj pointer to collision object
+@param newState any or several (connected by | operator) of [these constants]
+	(@ref ZBT_ACTIVATION_STATES)
+
+@fn void zbtSetDeactivationTime(
+	xptr obj, float time)
+@brief Set deactivation time for collision object.
+@param obj pointer to collision object
+@param time deactivation time (seconds)
+
+@fn void zbtSetUserIndex(
+	xptr obj, int index)
+@brief Set user-defined index (an integer value) to collision object.
+@param obj pointer to collision object
+@param index index value
+
+@fn int zbtGetUserIndex(
+	xptr obj)
+@brief Get user-defined index (an integer value) of collision object.
+@param obj pointer to collision object
+@return object's user-defined index value
+
+@fn void zbtSetUserPointer(
+	xptr obj, xptr pointer)
+@brief Set user-defined pointer to collision object.
+@param obj pointer to collision object
+@param pointer user-defined pointer value
+
+xptr zbtGetUserPointer(xptr obj) {}
+@brief Get user-defined pointer of collision object.
+@param obj pointer to collision object
+@return object's user-defined pointer value
+
+*///! @}
+
+
+/*! @name Collision detection
+Functions used to query collision detection results and to influence collision
+detection.
+@{
+
+@fn void zbtSetIgnoreCollisionCheck(
+	xptr objA, xptr objB, int bIgnoreCollisionCheck)
+@brief Set ignoring mutual collision check for two collision objects.
+@param objA pointer to collision object A
+@param objB pointer to collision object B
+@param bIgnoreCollisionCheck 0 - collision check of object A and object B is not
+	ignored; 1 - collision checkof A and B is ignored
+
+@fn int zbtStartCollisionDetection()
+@brief Start querying of collision detection.
+@return number of manifolds - contact areas of 2 objects; one manifold
+	can have more contact points obtained by zbtGetNextContact() function
+
+@fn int zbtGetNextContact(
+	xptr outObjA, xptr outObjB,
+	xptr outPosA, xptr outPosB, xptr outNormal)
+@brief Returns information about next contact point of two collided objects.
+@details To iterate through all contact points in a given simulation step,
+execute this function in a loop until it returns 0. Before calling this
+function, call zbtStartCollisionDetection() function to reset iterators of
+contact points.
+@param[out] outObjA pointer to collided object A
+@param[out] outObjB pointer to collided object B
+@param[out] outPosA pointer to vec3 vector set to world position of collision
+	point in object A
+@param[out] outPosB pointer to vec3 vector set to world position of collision
+	point in object B
+@param[out] outNormal pointer to vec3 vector set to normal of contact point
+	(taken from contact point in object B)
+@return 0 - outputs were not set since there is no other contact available;
+	1 - output values were set
+	
+@fn void zbtGetCollidedObjects(
+	int contactIndex, xptr outObjA, xptr outObjB)
+@brief Return collided objects of manifold with the specified index.
+@details To obtain number of collided objects, first call the
+zbtStartCollisionDetection() function. Then, iterate through all collisions by
+zbtGetCollidedObjects() function, where @a contactIndex is changed in each
+iteration. 
+@param contactIndex index to contact manifold; value is from 0 to 
+	zbtStartCollisionDetection() - 1
+@param[out] outObjA pointer to collided object A
+@param[out] outObjB pointer to collided object B
+
+@fn int zbtIsColliding(
+	xptr obj)
+@brief Is collision object collided with another one?
+@param obj pointer to collision object
+@return 0 - given collision object is not collided; 1 - is collided`
+
+@fn int zbtGetNumberOfCollisions(
+	xptr obj)
+@brief Get number of collisions of collision object.
+@param obj pointer to collision object
+@return number of collisions (manifolds with the object)
+	
+@fn int zbtIsCollidedWith(
+	xptr objA, xptr objB)
+@brief Are the specified collision objects collided?
+@param objA pointer to collision object A
+@param objB pointer to collision object B
+@return 0 - objects are not collided; 1 - objects are collided
+
+*///! @}
+
+
+/*! @name Raycasting
+Ray casting is like shooting a virtual laser between two points, and seeing if
+(and what) it hits. It can be used, for example, to identify objects under
+pointer, identify objects seen from some position in world, or to achieve firing
+objects remotely.
+@{
+
+@fn xptr zbtRayTest(
+	float fromX, float fromY, float fromZ,
+	float toX, float toY, float toZ)
+@brief Perform ray casting between two points in world and return the first hit
+	colision object, or null if no object appears between the two points.
+@param fromX, fromY, fromZ position of the raycasting source point
+@param toX, toY, toZ position of the raycasting target point
+@return pointer to the first hit collision object, or null if no object was hit
+
+@fn void zbtGetRayTestHitPointXYZ(
+	ref float outX, ref float outY, ref float outZ)
+@brief Get position of previous ray test hit.
+@details To obtain correct value, call zbtRayTest() function before.
+@param[out] outX, outY, outZ output vector of hit position in the world space
+
+@fn void zbtGetRayTestHitPoint(
+	xptr outPosition)
+@brief Get position of previous ray test hit.
+@details To obtain correct value, call zbtRayTest() function before.
+@param[out] outPosition pointer to vec3 set to the hit position in the world
+	space
+
+@fn void zbtGetRayTestHitNormalXYZ(
+	ref float outX, ref float outY, ref float outZ)
+@brief Get normal of previous ray test hit.
+@details To obtain correct value, call zbtRayTest() function before.
+@param[out] outX, outY, outZ output vector of hit normal
+
+@fn void zbtGetRayTestHitNormal(
+	xptr outNormal)
+@brief Get normal of previous ray test hit.
+@details To obtain correct value, call zbtRayTest() function before.
+@param[out] outNormal pointer to vec3 set to the hit normal
+
+*///! @}
+
+//! @}

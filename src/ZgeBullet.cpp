@@ -1,6 +1,6 @@
  /*
 ZgeBullet Library
-Copyright (c) 2012-2014 Radovan Cervenka
+Copyright (c) 2012-2015 Radovan Cervenka
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -25,89 +25,95 @@ freely, subject to the following restrictions:
 
 #pragma unmanaged
 
-// Definitions
-
-#ifdef _WIN32
-#define export extern "C" __declspec(dllexport)
-#else
-#define export extern "C"
-#endif
-
-#define BT_EULER_DEFAULT_ZYX
-
-#define DONE 0
-#define ERROR -1
-#define TRUE 1
-#define FALSE 0
 
 // Includes
 
 #include "btBulletDynamicsCommon.h"
 #include "BulletCollision/CollisionShapes/btHeightfieldTerrainShape.h"
 #include "BulletCollision/Gimpact/btGImpactShape.h"
-//#include "BulletCollision/CollisionDispatch/btGhostObject.h"
+#include "BulletCollision/CollisionDispatch/btGhostObject.h"
+#include "BulletDynamics/Character/btKinematicCharacterController.h"
 
-// Macros for list operations
 
-#define GET_ITEM_FROM_LIST(list, type, var, id) \
-	if(id<0 || id>=list.size() || !list[id]) return ERROR; \
-	type var =(type)list[id]; \
-	if(!var) return ERROR
+// Definitions
 
-#define GET_ITEM_FROM_MIXED_LIST(list, type, var, id) \
-	if(id<0 || id>=list.size() || !list[id]) return ERROR; \
-	type var; \
-	try { var=(type)list[id];} catch (...) {return ERROR;} \
-	if(!var) return ERROR
+#ifdef _WIN32
+#define EXPORT extern "C" __declspec(dllexport)
+#else
+#define EXPORT extern "C"
+#endif
 
-#define ADD_TO_LIST(list, item) \
-	int _i = list.findLinearSearch(NULL); \
-	if(_i == list.size()) { \
-		list.push_back(item); \
-		return list.size()-1; \
-	} else { \
-		list[_i] = item; \
-		return _i; \
+
+// Types
+
+// Used for passing 3D vectors to public functions
+struct v3{
+	float x;
+	float y;
+	float z;
+
+	inline void set(btVector3 const & src) {
+		x = src.x();
+		y = src.y();
+		z = src.z();
 	}
+};
 
-//#define CHECK_INDEX_IN_VECTOR(vector, index) \
-//	if(index<0 || (unsigned)index>=vector.size()) return ERROR
 
-#define IS_INITIALIZED if(!gIsInitialized) return ERROR
+// Macros
 
-#define CHECK_WHEEL(wheelId) if(wheelId<0 || wheelId>=rv->getNumWheels()) return ERROR
+#define ADD_COLLISION_SHAPE(shape) \
+	gCollisionShapeList.push_back(shape); \
+	return shape
+
 
 // Globals
 
 // Variables
-bool gIsInitialized = false;
 btBroadphaseInterface* gBroadphase;
 btDefaultCollisionConfiguration* gCollisionConfiguration;
 btCollisionDispatcher* gDispatcher;
 btSequentialImpulseConstraintSolver* gSolver;
 btDiscreteDynamicsWorld* gWorld;
-btTriangleMesh* gTmpTriangleMesh = NULL;
+
 btVector3 gRayTestHitPoint;
 btVector3 gRayTestHitNormal;
+
+bool gCreateGhostPairCallback = true;
 btVehicleRaycaster* gVehicleRaycaster = NULL;
 btRaycastVehicle::btVehicleTuning gTuning;
 
-// Global lists
+int gManifoldIndex = -1;
+btPersistentManifold* gManifold;
+int gManifoldPointIndex = -1;
+
 btAlignedObjectArray<btCollisionShape*> gCollisionShapeList;
-btAlignedObjectArray<btCollisionObject*> gCollisionObjectList;
-btAlignedObjectArray<btTypedConstraint*> gConstraintList;
+
+
+// Utilities
+
+// Creates btTransform from position and rotation given by Euler angles
+inline btTransform transform(float x, float y, float z, float rx, float ry, float rz) {
+	return btTransform(btQuaternion(ry*SIMD_2_PI, rx*SIMD_2_PI, rz*SIMD_2_PI), btVector3(x, y, z));
+}
+
+inline void checkWheel(btRaycastVehicle* vehicle, int wheelId) {
+	btAssert(wheelId >= 0 && wheelId < vehicle->getNumWheels());
+}
+
 
 // Declarations of functions
 
-export int zbtDeleteRigidBody(int id);
-//export int zbtDeleteGhostObject(int ghostObjectId);
-export int zbtDeleteConstraint(int id);
+EXPORT void zbtDeleteRigidBody(btRigidBody*);
+EXPORT void zbtDeleteAllShapes();
+EXPORT void zbtDeleteGhostObject(btGhostObject*);
+
+
+// Public API
 
 // World
 
-export int zbtCreateWorld() {
-	if(gIsInitialized)
-		return ERROR;
+EXPORT void zbtCreateWorld() {
 
 	gBroadphase = new btDbvtBroadphase();
 	gCollisionConfiguration = new btDefaultCollisionConfiguration();
@@ -117,614 +123,644 @@ export int zbtCreateWorld() {
 
 	gRayTestHitPoint = btVector3(0, 0, 0);
 	gRayTestHitNormal = btVector3(0, 0, 0);
-
-	gIsInitialized = true;
-	return DONE;
 }
 
-export int zbtDestroyWorld() {
-	IS_INITIALIZED;
+EXPORT void zbtDestroyWorld() {
 
-	int i;
+	// delete collision objects
+	btCollisionObjectArray colArray = gWorld->getCollisionObjectArray();
+	for(int i = gWorld->getNumCollisionObjects() - 1; i >= 0; --i){
+		btCollisionObject* obj = colArray[i];
+		if (obj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
+			zbtDeleteRigidBody(btRigidBody::upcast(obj));
+		else
+			//btCollisionObject::CO_GHOST_OBJECT
+			zbtDeleteGhostObject(btGhostObject::upcast(obj));
+	}
 
-	// delete rigid bodies
-	for(i = gCollisionObjectList.size()-1; i >= 0; --i)
-		//if(typeid(gCollisionObjectList[i]) == typeid(btRigidBody))
-			zbtDeleteRigidBody(i);
-		//else
-		//	zbtDeleteGhostObject(i);
-
-	gCollisionObjectList.clear();
-
-	// clear list of constraints
-	gConstraintList.clear();
+	// delete remaining constraints
+	for (int i = gWorld->getNumConstraints() - 1; i >= 0; --i){
+		btTypedConstraint* co = gWorld->getConstraint(i);
+		gWorld->removeConstraint(co);
+		delete co;
+	}
 
 	// destroy vehicle raycaster, if any
-	//if(gVehicleRaycaster) delete gVehicleRaycaster;
+	if(gVehicleRaycaster) delete gVehicleRaycaster;
+
+	// delete collision shapes
+	zbtDeleteAllShapes();
 
 	delete gWorld;
-    delete gSolver;
+    delete gSolver;	
     delete gDispatcher;
     delete gCollisionConfiguration;
     delete gBroadphase;
-
-	gIsInitialized = false;
-	return DONE;
 }
 
-export int zbtSetWorldGravity(float x, float y, float z) {
-	IS_INITIALIZED;
+EXPORT void zbtSetWorldGravity(float x, float y, float z) {
 	gWorld->setGravity(btVector3(x, y, z));
-	return DONE;
 }
 
-export int zbtStepSimulation(float timeStep, int maxSubSteps, float fixedTimeStep) {
-	IS_INITIALIZED;
+EXPORT void zbtStepSimulation(float timeStep, int maxSubSteps, float fixedTimeStep) {
 	gWorld->stepSimulation(timeStep, maxSubSteps, fixedTimeStep);
-	return DONE;
 }
+
 
 // Collision shapes
 
-export int zbtCreateStaticPlaneShape(float normalX, float normalY, float normalZ, float planeConstant) {
-	ADD_TO_LIST(gCollisionShapeList, new btStaticPlaneShape(btVector3(normalX, normalY, normalZ), planeConstant));
+EXPORT btCollisionShape* zbtCreateStaticPlaneShape(float normalX, float normalY, float normalZ, float planeConstant) {
+	ADD_COLLISION_SHAPE(new btStaticPlaneShape(btVector3(normalX, normalY, normalZ), planeConstant));
 }
 
-export int zbtCreateBoxShape(float x, float y, float z) {
-	ADD_TO_LIST(gCollisionShapeList, new btBoxShape(btVector3(x, y, z)));
+EXPORT btCollisionShape* zbtCreateBoxShape(float x, float y, float z) {
+	ADD_COLLISION_SHAPE(new btBoxShape((btVector3(x, y, z))));
 }
 
-export int zbtCreateSphereShape(float radius) {
-	ADD_TO_LIST(gCollisionShapeList, new btSphereShape(radius));
+EXPORT btCollisionShape* zbtCreateSphereShape(float radius) {
+	ADD_COLLISION_SHAPE(new btSphereShape(radius));
 }
 
-export int zbtCreateScalableSphereShape(float radius) {
+EXPORT btCollisionShape* zbtCreateScalableSphereShape(float radius) {
 #ifdef _WIN32
-	ADD_TO_LIST(gCollisionShapeList, new btMultiSphereShape(&btVector3(0,0,0), &radius, 1));
+	ADD_COLLISION_SHAPE(new btMultiSphereShape(&btVector3(0,0,0), &radius, 1));
 #else
-	btVector3 positions[1] = {btVector3(0,0,0)};
-	btScalar radii[1] = {radius};
+	static const btVector3 positions[1] = {btVector3(0,0,0)};
+	static btScalar radi[1] = {radius};
 
-	ADD_TO_LIST(gCollisionShapeList, new btMultiSphereShape(positions, radii, 1));
+	ADD_COLLISION_SHAPE(new btMultiSphereShape(positions, radi, 1));
 #endif
 }
 
-export int zbtCreateConeShape(float radius, float height) {
-	ADD_TO_LIST(gCollisionShapeList, new btConeShape(radius, height));
+EXPORT btCollisionShape* zbtCreateConeShape(float radius, float height) {
+	ADD_COLLISION_SHAPE(new btConeShape(radius, height));
 }
 
-export int zbtCreateCylinderShape(float radius, float height) {
-	ADD_TO_LIST(gCollisionShapeList, new btCylinderShape(btVector3(radius, height, radius)));
+EXPORT btCollisionShape* zbtCreateCylinderShape(float radius, float height) {
+	ADD_COLLISION_SHAPE(new btCylinderShape(btVector3(radius, height, radius)));
 }
 
-export int zbtCreateCapsuleShape(float radius, float height) {
-	ADD_TO_LIST(gCollisionShapeList, new btCapsuleShape(radius, height));
+EXPORT btCollisionShape* zbtCreateCapsuleShape(float radius, float height) {
+	ADD_COLLISION_SHAPE(new btCapsuleShape(radius, height));
 }
 
-export int zbtCreateCompoundShape() {
-	ADD_TO_LIST(gCollisionShapeList, new btCompoundShape());
+EXPORT btCollisionShape* zbtCreateCompoundShape() {
+	ADD_COLLISION_SHAPE(new btCompoundShape());
 }
 
-export int zbtAddChildShape(int compoundId, int childId,
+EXPORT btCollisionShape* zbtAddChildShape(btCompoundShape* compoundShape, btCollisionShape* childShape,
 	float x, float y, float z, float rx, float ry, float rz) {
 
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, compShape, compoundId);
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, childShape, childId);
-
-	try {
-		((btCompoundShape*)compShape)->addChildShape(
-			btTransform(btQuaternion(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI), btVector3(x, y, z)), childShape);
-	} catch (...) {return ERROR;}
-
-	return DONE;
+	compoundShape->addChildShape(transform(x, y, z, rx, ry, rz), childShape);
+	return compoundShape;
 }
 
-export int zbtRemoveChildShape(int compoundId, int childId) {
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, compShape, compoundId);
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, childShape, childId);
+EXPORT btCollisionShape* zbtRemoveChildShape(btCompoundShape* compoundShape, btCollisionShape* childShape) {
 
-	try {
-		((btCompoundShape*)compShape)->removeChildShape(childShape);
-	} catch (...) {return ERROR;}
-
-	return DONE;
+	compoundShape->removeChildShape(childShape);
+	return compoundShape;
 }
 
-export int zbtCreateHeightfieldTerrainShape(void *heightfieldData, int dataType, int width, int length,
-	float heightScale, float minHeight, float maxHeight, int upAxis, bool bFlipQuadEdges, bool bDiamondSubdivision) {
+EXPORT btCollisionShape* zbtCreateHeightfieldTerrainShape(void* heightfieldData, int width, int length,
+	float minHeight, float maxHeight, int upAxis, bool bFlipQuadEdges, bool bDiamondSubdivision) {
 
 	try {
 		btHeightfieldTerrainShape* hf = new btHeightfieldTerrainShape(width, length, heightfieldData,
-			heightScale, minHeight, maxHeight, upAxis, (dataType == 0 ? PHY_FLOAT : PHY_INTEGER), bFlipQuadEdges);
+			1, minHeight, maxHeight, upAxis, PHY_FLOAT, bFlipQuadEdges);
 		hf->setUseDiamondSubdivision(bDiamondSubdivision);
-		ADD_TO_LIST(gCollisionShapeList, hf);
-	} catch (...) {return ERROR;}
+		ADD_COLLISION_SHAPE(hf);
+	} catch (...) { return NULL; }
 }
 
-export int zbtCreateConvexHullShape(float *points, int numPoints) {
+EXPORT btCollisionShape* zbtCreateConvexHullShape(float* points, int numPoints) {
 
 	try {
-		ADD_TO_LIST(gCollisionShapeList, new btConvexHullShape(points, numPoints, 3 * sizeof(float)));
-	} catch (...) {return ERROR;}
-
+		ADD_COLLISION_SHAPE(new btConvexHullShape(points, numPoints));
+	} catch (...) { return NULL; }
 }
 
-export int zbtCreateMultiSphereShape(float *positions, float *radiuses, int num) {
+EXPORT btCollisionShape* zbtCreateMultiSphereShape(float* positions, float* radii, int numSpheres) {
 
 	try {
-		ADD_TO_LIST(gCollisionShapeList, new btMultiSphereShape((btVector3*)positions, radiuses, num));
-	} catch (...) {return ERROR;}
+		// copy float array to btVector3 array
+		btAlignedObjectArray<btVector3> pos;
+		for (int i = 0; i < numSpheres; ++i)
+			pos.push_back(btVector3(positions[i*3], positions[i*3+1], positions[i*3+2]));
 
+		ADD_COLLISION_SHAPE(new btMultiSphereShape((btVector3*)positions, radii, numSpheres));
+	} catch (...) { return NULL; }
 }
 
-export int zbtStartTriangleMeshShape() {
-    if(gTmpTriangleMesh) return ERROR;
-    gTmpTriangleMesh = new btTriangleMesh(false,false);
-    return DONE;
-}
+EXPORT btCollisionShape* zbtCreateTriangleMeshShape(float* triangles, int numTriangles, int meshType) {
 
-export int zbtAddTriangle(float x1,float y1,float z1,
-	float x2,float y2,float z2,float x3,float y3,float z3) {
+	// create triangle mesh
+	btTriangleMesh* triangleMesh = new btTriangleMesh(false, false);
 
-    if(!gTmpTriangleMesh) return ERROR;
-    gTmpTriangleMesh->addTriangle(btVector3(x1,y1,z1), btVector3(x2,y2,z2), btVector3(x3,y3,z3));
-    return DONE;
-}
+	// add triangles
+	try {
+		for (int i = (numTriangles-1) * 9; i >= 0; --i)
+			triangleMesh->addTriangle(
+				btVector3(triangles[i], triangles[i+1], triangles[i+2]),
+				btVector3(triangles[i+3], triangles[i+4], triangles[i+5]),
+				btVector3(triangles[i+6], triangles[i+7], triangles[i+8]), true);
+	} catch (...) { return NULL; }
 
-export int zbtFinishTriangleMeshShape(int meshType) {
-    if(!gTmpTriangleMesh) return ERROR;
+	// create triangle mesh collision shape
+
 	btCollisionShape* tm;
 
-	switch(meshType) {
+	switch (meshType) {
 	case 1: // convex hull
-		tm = new btConvexTriangleMeshShape(gTmpTriangleMesh);
+		tm = new btConvexTriangleMeshShape(triangleMesh);
 		break;
 	case 2: // concave static-triangle mesh shape
-		tm = new btBvhTriangleMeshShape(gTmpTriangleMesh, true, true);
+		tm = new btBvhTriangleMeshShape(triangleMesh, true, true);
 		break;
 	case 3: // concave deformable mesh
-		tm = new btGImpactMeshShape(gTmpTriangleMesh);
+		tm = new btGImpactMeshShape(triangleMesh);
 		((btGImpactMeshShape*)tm)->updateBound();
 	}
 
-	gTmpTriangleMesh=NULL;
-    ADD_TO_LIST(gCollisionShapeList, tm);
+	ADD_COLLISION_SHAPE(tm);
 }
 
-export int zbtSetShapeLocalScaling(int shapeId, float x, float y, float z) {
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, cs, shapeId);
-	cs->setLocalScaling(btVector3(x, y, z));
-	return DONE;
+EXPORT void zbtUpdateDeformableTriangleMesh(btGImpactMeshShape* triangleMeshShape) {
+	triangleMeshShape->postUpdate();
 }
 
-export int zbtSetShapeMargin(int shapeId, float margin) {
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, cs, shapeId);
-	cs->setMargin(margin);
-	return DONE;
+EXPORT void zbtSetShapeLocalScaling(btCollisionShape* shape, float x, float y, float z) {
+	shape->setLocalScaling(btVector3(x, y, z));
+
+	if (shape->getShapeType() == GIMPACT_SHAPE_PROXYTYPE)
+		((btGImpactMeshShape*)shape)->updateBound();
 }
 
-export int zbtDeleteShape(int shapeId) {
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, cs, shapeId);
-	gCollisionShapeList[shapeId] = NULL;
-	delete cs;
-
-	return DONE;
+EXPORT void zbtSetShapeMargin(btCollisionShape* shape, float margin) {
+	shape->setMargin(margin);
 }
 
-export int zbtDeleteAllShapes() {
-	for(int i = gCollisionShapeList.size()-1; i >= 0; --i)
-		zbtDeleteShape(i);
+EXPORT void zbtDeleteShape(btCollisionShape* shape) {
+	delete shape;
+}
+
+EXPORT void zbtDeleteAllShapes() {
+	for (int i = gCollisionShapeList.size() - 1; i >= 0; --i)
+		delete gCollisionShapeList[i];
+	//gCollisionShapeList.resize(0);
+
 	gCollisionShapeList.clear();
-
-	return DONE;
 }
+
 
 // Rigid bodies
 
-export int zbtAddRigidBodyXYZ(float mass, int shapeId, float x, float y, float z, float rx, float ry, float rz) {
-	IS_INITIALIZED;
+EXPORT btRigidBody* zbtCreateRigidBodyXYZ(float mass, btCollisionShape* shape, float x, float y, float z, float rx, float ry, float rz) {
 
-	btDefaultMotionState* motionState = new btDefaultMotionState(btTransform(btQuaternion(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI), btVector3(x, y, z)));
-    btVector3 inertia(0, 0, 0);
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, shape, shapeId);
-	if(mass > 0.f) // mass == 0 - static rigid body
-	    shape->calculateLocalInertia(mass, inertia);
-    btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(mass, motionState, shape, inertia);
-    btRigidBody* rigidBody = new btRigidBody(rigidBodyCI);
-    gWorld->addRigidBody(rigidBody);
+	btDefaultMotionState* motionState = new btDefaultMotionState(transform(x, y, z, rx, ry, rz));
+	btVector3 inertia(0, 0, 0);
 
-	ADD_TO_LIST(gCollisionObjectList, rigidBody);
+	if (mass > 0.f) // mass == 0 - fixed rigid body
+		shape->calculateLocalInertia(mass, inertia);
+
+	btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(mass, motionState, shape, inertia);
+	btRigidBody* rigidBody = new btRigidBody(rigidBodyCI);
+	gWorld->addRigidBody(rigidBody);
+
+	return rigidBody;
 }
 
-export int zbtAddRigidBody(float mass, int shapeId, float pos[3], float rot[3]) {
-	return zbtAddRigidBodyXYZ(mass, shapeId, pos[0], pos[1], pos[2], rot[0], rot[1], rot[2]);
+EXPORT btRigidBody* zbtCreateRigidBody(float mass, btCollisionShape* shape, v3 &position, v3 &rotation) {
+	return zbtCreateRigidBodyXYZ(mass, shape, position.x, position.y, position.z,
+		rotation.x, rotation.y, rotation.z);
 }
 
-export int zbtDeleteRigidBody(int rigidBodyId) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
+EXPORT void zbtDeleteRigidBody(btRigidBody* rigidBody) {
 
 	// remove related constraints
-	while (rb->getNumConstraintRefs()) {
-		btTypedConstraint* tc = rb->getConstraintRef(0);
-
-		int i = gConstraintList.findLinearSearch(tc);
-		if(i < gConstraintList.size()) gConstraintList[i] = NULL;
+	while (rigidBody->getNumConstraintRefs()) {
+		btTypedConstraint* tc = rigidBody->getConstraintRef(0);
 
 		gWorld->removeConstraint(tc);
 		delete tc;
 	}
 
-	gWorld->removeRigidBody(rb);
-	gCollisionObjectList[rigidBodyId] = NULL;
-	delete rb->getMotionState();
-	delete rb;
+	// remove motion state
+	delete rigidBody->getMotionState();
 
-	return DONE;
+	// remove body
+	gWorld->removeRigidBody(rigidBody);
+	delete rigidBody;
 }
 
-export int zbtSetMass(int rigidBodyId, float mass) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
+EXPORT void zbtSetMass(btRigidBody* rigidBody, float mass) {
 	btVector3 inertia;
-	rb->getCollisionShape()->calculateLocalInertia(mass, inertia);
-	rb->setMassProps(mass, inertia);
-	return DONE;
+	rigidBody->getCollisionShape()->calculateLocalInertia(mass, inertia);
+	rigidBody->setMassProps(mass, inertia);
 }
 
-export int zbtSetDamping(int rigidBodyId, float linDamping, float angDamping) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->setDamping(linDamping, angDamping*SIMD_2_PI);
-	return DONE;
+EXPORT void zbtSetDamping(btRigidBody* rigidBody, float linearDamping, float angularDamping) {
+	rigidBody->setDamping(linearDamping, angularDamping);
 }
 
-export int zbtSetLinearFactor(int rigidBodyId, float x, float y, float z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->setLinearFactor(btVector3(x, y, z));
-	return DONE;
+EXPORT void zbtSetLinearFactor(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->setLinearFactor(btVector3(x, y, z));
 }
 
-export int zbtSetAngularFactor(int rigidBodyId, float x, float y, float z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->setAngularFactor(btVector3(x, y, z));
-	return DONE;
+EXPORT void zbtSetAngularFactor(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->setAngularFactor(btVector3(x, y, z));
 }
 
-export int zbtSetGravity(int rigidBodyId, float x, float y, float z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->setGravity(btVector3(x, y, z));
-	return DONE;
+EXPORT void zbtSetGravity(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->setGravity(btVector3(x, y, z));
 }
 
-export int zbtGetLinearVelocity(int rigidBodyId, float &x, float &y, float &z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	x = rb->getLinearVelocity().getX();
-	y = rb->getLinearVelocity().getY();
-	z = rb->getLinearVelocity().getZ();
-	return DONE;
+EXPORT void zbtSetLinearVelocity(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->setLinearVelocity(btVector3(x, y, z));
+	rigidBody->activate(true);
 }
 
-export int zbtSetLinearVelocity(int rigidBodyId, float x, float y, float z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->setLinearVelocity(btVector3(x, y, z));
-	rb->activate(true);
-	return DONE;
+EXPORT void zbtGetLinearVelocity(btRigidBody* rigidBody, float &outX, float &outY, float &outZ) {
+	btVector3 linearVelocity = rigidBody->getLinearVelocity();
+	outX = linearVelocity.getX();
+	outY = linearVelocity.getY();
+	outZ = linearVelocity.getZ();
 }
 
-export int zbtGetAngularVelocity(int rigidBodyId, float &x, float &y, float &z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	x = rb->getAngularVelocity().getX() / SIMD_2_PI;
-	y = rb->getAngularVelocity().getY() / SIMD_2_PI;
-	z = rb->getAngularVelocity().getZ() / SIMD_2_PI;
-	return DONE;
+EXPORT void zbtSetAngularVelocity(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->setAngularVelocity(btVector3(x, y, z));
+	rigidBody->activate(true);
 }
 
-export int zbtSetAngularVelocity(int rigidBodyId, float x, float y, float z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->setAngularVelocity(btVector3(x*SIMD_2_PI, y*SIMD_2_PI, z*SIMD_2_PI));
-	rb->activate(true);
-	return DONE;
+EXPORT void zbtGetAngularVelocity(btRigidBody* rigidBody, float &outX, float &outY, float &outZ) {
+	btVector3 angularVelocity = rigidBody->getAngularVelocity() / SIMD_2_PI;
+	outX = angularVelocity.getX();
+	outY = angularVelocity.getY();
+	outZ = angularVelocity.getZ();
 }
 
-export int zbtApplyCentralImpulse(int rigidBodyId, float x, float y, float z) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->applyCentralImpulse(btVector3(x, y, z));
-	rb->activate(true);
-	return DONE;
+EXPORT void zbtApplyCentralImpulse(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->applyCentralImpulse(btVector3(x, y, z));
+	rigidBody->activate(true);
 }
 
-export int zbtApplyTorqueImpulse(int rigidBodyId, float rx, float ry, float rz) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->applyTorqueImpulse(btVector3(rx*SIMD_2_PI, ry*SIMD_2_PI, rz*SIMD_2_PI));
-	rb->activate(true);
-	return DONE;
+EXPORT void zbtApplyTorqueImpulse(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->applyTorqueImpulse(btVector3(x, y, z));
+	rigidBody->activate(true);
 }
 
-export int zbtApplyImpulse(int rigidBodyId, float x, float y, float z, float relX, float relY, float relZ) {
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->applyImpulse(btVector3(x, y, z), btVector3(relX, relY, relZ));
-	rb->activate(true);
-	return DONE;
+EXPORT void zbtApplyImpulse(btRigidBody* rigidBody, float x, float y, float z,
+	float relX, float relY, float relZ) {
+
+	rigidBody->applyImpulse(btVector3(x, y, z), btVector3(relX, relY, relZ));
+	rigidBody->activate(true);
 }
+
+EXPORT void zbtSetSleepingThresholds(btRigidBody* rigidBody, float linear, float angular) {
+	rigidBody->setSleepingThresholds(linear, angular*SIMD_2_PI);
+}
+
 
 // Constraints and limits
 
-export int zbtAreConnected(int rigidBodyAId, int rigidBodyBId) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rb1, rigidBodyAId);
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rb2, rigidBodyBId);
-
-	return int(!rb1->checkCollideWithOverride(rb2));
+EXPORT bool zbtAreConnected(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB) {
+	return !rigidBodyA->checkCollideWithOverride(rigidBodyB);
 }
 
-export int zbtAddPoint2PointConstraint(int rigidBodyAId, int rigidBodyBId,
-	float pivotAx, float pivotAy, float pivotAz,
-	float pivotBx, float pivotBy, float pivotBz, bool bDisableCollision) {
-
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbA, rigidBodyAId);
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbB, rigidBodyBId);
-
-	btTypedConstraint* tc = new btPoint2PointConstraint(*rbA, *rbB,
-		btVector3(pivotAx, pivotAy, pivotAz), btVector3(pivotBx, pivotBy, pivotBz));
-	gWorld->addConstraint(tc, bDisableCollision);
-
-	ADD_TO_LIST(gConstraintList, tc);
-}
-
-export int zbtAddPoint2PointConstraint1(int rigidBodyId, float pivotX, float pivotY, float pivotZ,
-	bool bDisableCollision) {
-
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-
-	btTypedConstraint* tc = new btPoint2PointConstraint(*rb, btVector3(pivotX, pivotY, pivotZ));
-	gWorld->addConstraint(tc, bDisableCollision);
-
-	ADD_TO_LIST(gConstraintList, tc);
-}
-
-export int zbtAddHingeConstraint(int rigidBodyAId, int rigidBodyBId,
-	float pivotAx, float pivotAy, float pivotAz,
-	float pivotBx, float pivotBy, float pivotBz,
-	float axisAx, float axisAy, float axisAz,
-	float axisBx, float axisBy, float axisBz, bool bDisableCollision) {
-
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbA, rigidBodyAId);
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbB, rigidBodyBId);
-
-	btTypedConstraint* tc = new btHingeConstraint(*rbA, *rbB,
-		btVector3(pivotAx, pivotAy, pivotAz), btVector3(pivotBx, pivotBy, pivotBz),
-		btVector3(axisAx, axisAy, axisAz), btVector3(axisBx, axisBy, axisBz));
-	gWorld->addConstraint(tc, bDisableCollision);
-
-	ADD_TO_LIST(gConstraintList, tc);
-}
-
-export int zbtAddHingeConstraint1(int rigidBodyId,
-	float pivotX, float pivotY, float pivotZ,
-	float axisX, float axisY, float axisZ, bool bDisableCollision) {
-
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-
-	btTypedConstraint* tc = new btHingeConstraint(*rb,
-		btVector3(pivotX, pivotY, pivotZ), btVector3(axisX, axisY, axisZ));
-	gWorld->addConstraint(tc, bDisableCollision);
-
-	ADD_TO_LIST(gConstraintList, tc);
-}
-
-export int zbtSetHingeLimits(int constraintId, float low, float high,
-	float softness, float biasFactor, float relaxationFactor) {
-
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btHingeConstraint*, hc, constraintId);
-	hc->setLimit(low*SIMD_2_PI , high*SIMD_2_PI, softness, biasFactor, relaxationFactor);
-
-	return DONE;
-}
-
-export int zbtEnableHingeAngularMotor(int constraintId, bool bEnableMotor, float targetVelocity, float maxMotorImpulse) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btHingeConstraint*, hc, constraintId);
-	hc->enableAngularMotor(bEnableMotor, targetVelocity, maxMotorImpulse);
-
-	return DONE;
-}
-
-export int zbtAddConeTwistConstraint(int rigidBodyAId, int rigidBodyBId,
+EXPORT btTypedConstraint* zbtAddFixedConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
 	float pivotAx, float pivotAy, float pivotAz,
 	float pivotBx, float pivotBy, float pivotBz,
 	float rotAx, float rotAy, float rotAz,
 	float rotBx, float rotBy, float rotBz, bool bDisableCollision) {
 
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbA, rigidBodyAId);
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbB, rigidBodyBId);
-
-	btTypedConstraint* tc = new btConeTwistConstraint(*rbA, *rbB,
-		btTransform(btQuaternion(rotAz*SIMD_2_PI, rotAy*SIMD_2_PI, rotAx*SIMD_2_PI), btVector3(pivotAx, pivotAy, pivotAz)),
-		btTransform(btQuaternion(rotBz*SIMD_2_PI, rotBy*SIMD_2_PI, rotBx*SIMD_2_PI), btVector3(pivotBx, pivotBy, pivotBz)));
+	btTypedConstraint* tc = new btFixedConstraint(*rigidBodyA, *rigidBodyB,
+		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
+		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz));
 	gWorld->addConstraint(tc, bDisableCollision);
 
-	ADD_TO_LIST(gConstraintList, tc);
+	return tc;
 }
 
-export int zbtAddConeTwistConstraint1(int rigidBodyId,
+EXPORT btTypedConstraint* zbtAddPoint2PointConstraint1(btRigidBody* rigidBody,
+	float pivotX, float pivotY, float pivotZ) {
+
+	btTypedConstraint* tc = new btPoint2PointConstraint(*rigidBody, btVector3(pivotX, pivotY, pivotZ));
+	gWorld->addConstraint(tc, true);
+
+	return tc;
+}
+
+EXPORT btTypedConstraint* zbtAddPoint2PointConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz, bool bDisableCollision) {
+
+	btTypedConstraint* tc = new btPoint2PointConstraint(*rigidBodyA, *rigidBodyB,
+		btVector3(pivotAx, pivotAy, pivotAz), btVector3(pivotBx, pivotBy, pivotBz));
+	gWorld->addConstraint(tc, bDisableCollision);
+
+	return tc;
+}
+
+EXPORT btTypedConstraint* zbtAddHingeConstraint1(btRigidBody* rigidBody,
 	float pivotX, float pivotY, float pivotZ,
-	float rotX, float rotY, float rotZ, bool bDisableCollision) {
+	float axisX, float axisY, float axisZ) {
 
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
+	btTypedConstraint* tc = new btHingeConstraint(*rigidBody,
+		btVector3(pivotX, pivotY, pivotZ), btVector3(axisX, axisY, axisZ));
+	gWorld->addConstraint(tc, true);
 
-	btTypedConstraint* tc = new btConeTwistConstraint(*rb,
-		btTransform(btQuaternion(rotZ*SIMD_2_PI, rotY*SIMD_2_PI, rotX*SIMD_2_PI), btVector3(pivotX, pivotY, pivotZ)));
-	gWorld->addConstraint(tc, bDisableCollision);
-
-	ADD_TO_LIST(gConstraintList, tc);
+	return tc;
 }
 
-export int zbtSetConeTwistLimits(int constraintId, float swingX, float swingY, float swingZ,
+EXPORT btTypedConstraint* zbtAddHingeConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float axisAx, float axisAy, float axisAz,
+	float axisBx, float axisBy, float axisBz, bool bDisableCollision) {
+
+	btTypedConstraint* tc = new btHingeConstraint(*rigidBodyA, *rigidBodyB,
+		btVector3(pivotAx, pivotAy, pivotAz), btVector3(pivotBx, pivotBy, pivotBz),
+		btVector3(axisAx, axisAy, axisAz), btVector3(axisBx, axisBy, axisBz));
+	gWorld->addConstraint(tc, bDisableCollision);
+
+	return tc;
+}
+
+EXPORT void zbtSetHingeLimits(btHingeConstraint* hinge, float low, float high,
 	float softness, float biasFactor, float relaxationFactor) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btConeTwistConstraint*, cc, constraintId);
+	hinge->setLimit(low*SIMD_2_PI , high*SIMD_2_PI, softness, biasFactor, relaxationFactor);
+}
 
-	cc->setLimit(swingZ*SIMD_2_PI, swingY*SIMD_2_PI, swingX*SIMD_2_PI,
+EXPORT void zbtEnableHingeAngularMotor(btHingeConstraint* hinge, bool bEnableMotor, float targetVelocity, float maxMotorImpulse) {
+	hinge->enableAngularMotor(bEnableMotor, targetVelocity, maxMotorImpulse);
+}
+
+EXPORT btTypedConstraint* zbtAddConeTwistConstraint1(btRigidBody* rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ) {
+
+	btTypedConstraint* tc = new btConeTwistConstraint(*rigidBody,
+		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ));
+	gWorld->addConstraint(tc, true);
+
+	return tc;
+}
+
+EXPORT btTypedConstraint* zbtAddConeTwistConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, bool bDisableCollision ) {
+
+	btTypedConstraint* tc = new btConeTwistConstraint(*rigidBodyA, *rigidBodyB,
+		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
+		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz));
+	gWorld->addConstraint(tc, bDisableCollision);
+
+	return tc;
+}
+
+EXPORT void zbtSetConeTwistLimits(btConeTwistConstraint* twist,
+	float swingSpanA, float swingSpanB, float twistSpan,
+	float damping, float softness, float biasFactor, float relaxationFactor) {
+
+	twist->setLimit(swingSpanA*SIMD_2_PI, swingSpanB*SIMD_2_PI, twistSpan*SIMD_2_PI,
 		softness, biasFactor, relaxationFactor);
-
-	return DONE;
+	twist->setDamping(damping);
 }
 
-export int zbtAddSliderConstraint(int rigidBodyAId, int rigidBodyBId,
+EXPORT void zbtEnableConeTwistMotor(btConeTwistConstraint* twist,
+	bool bEnableMotor, float maxMotorImpulse,
+	float targetX, float targetY, float targetZ) {
+
+	twist->enableMotor(bEnableMotor);
+	twist->setMaxMotorImpulse(maxMotorImpulse);
+	twist->setMotorTarget(btQuaternion(targetY*SIMD_2_PI, targetX*SIMD_2_PI, targetZ*SIMD_2_PI));
+}
+
+EXPORT btTypedConstraint* zbtAddSliderConstraint1(btRigidBody* rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	bool bUseLinearReferenceWorldFrame) {
+
+	btTypedConstraint* tc = new btSliderConstraint(*rigidBody,
+		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ),
+		bUseLinearReferenceWorldFrame);
+	gWorld->addConstraint(tc, true);
+
+	return tc;
+}
+
+EXPORT btTypedConstraint* zbtAddSliderConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
 	float pivotAx, float pivotAy, float pivotAz,
 	float pivotBx, float pivotBy, float pivotBz,
 	float rotAx, float rotAy, float rotAz,
-	float rotBx, float rotBy, float rotBz, bool bUseLinearReferenceFrameA, bool bDisableCollision) {
+	float rotBx, float rotBy, float rotBz, bool bUseLinearReferenceFrameA, bool bDisableCollision ) {
 
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbA, rigidBodyAId);
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbB, rigidBodyBId);
-
-	btTypedConstraint* tc = new btSliderConstraint(*rbA, *rbB,
-		btTransform(btQuaternion(rotAz*SIMD_2_PI, rotAy*SIMD_2_PI, rotAx*SIMD_2_PI), btVector3(pivotAx, pivotAy, pivotAz)),
-		btTransform(btQuaternion(rotBz*SIMD_2_PI, rotBy*SIMD_2_PI, rotBx*SIMD_2_PI), btVector3(pivotBx, pivotBy, pivotBz)),
+	btTypedConstraint* tc = new btSliderConstraint(*rigidBodyA, *rigidBodyB,
+		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
+		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz),
 		bUseLinearReferenceFrameA);
 	gWorld->addConstraint(tc, bDisableCollision);
 
-	ADD_TO_LIST(gConstraintList, tc);
+	return tc;
 }
 
-export int zbtSetSliderLimits(int constraintId, float linLower, float linUpper, float angLower, float angUpper) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btSliderConstraint*, sc, constraintId);
+EXPORT void zbtSetSliderLimits(btSliderConstraint* slider,
+	float linLower, float linUpper, float angLower, float angUpper) {
 
-	sc->setLowerLinLimit(linLower);
-	sc->setUpperLinLimit(linUpper);
-	sc->setLowerAngLimit(angLower*SIMD_2_PI);
-	sc->setUpperAngLimit(angUpper*SIMD_2_PI);
-
-	return DONE;
+	slider->setLowerLinLimit(linLower);
+	slider->setUpperLinLimit(linUpper);
+	slider->setLowerAngLimit(angLower*SIMD_2_PI);
+	slider->setUpperAngLimit(angUpper*SIMD_2_PI);
 }
 
-export int zbtSetSliderSoftness(int constraintId, float dirLin, float dirAng, float limLin, float limAng,
+EXPORT void zbtSetSliderSoftness(btSliderConstraint* slider,
+	float dirLin, float dirAng, float limLin, float limAng,
 	float orthoLin, float orthoAng) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btSliderConstraint*, sc, constraintId);
-
-	sc->setSoftnessDirLin(dirLin);
-	sc->setSoftnessDirAng(dirAng*SIMD_2_PI);
-	sc->setSoftnessLimLin(limLin);
-	sc->setSoftnessLimAng(limAng*SIMD_2_PI);
-	sc->setSoftnessOrthoLin(orthoLin);
-	sc->setSoftnessOrthoAng(orthoAng*SIMD_2_PI);
-
-	return DONE;
+	slider->setSoftnessDirLin(dirLin);
+	slider->setSoftnessDirAng(dirAng*SIMD_2_PI);
+	slider->setSoftnessLimLin(limLin);
+	slider->setSoftnessLimAng(limAng*SIMD_2_PI);
+	slider->setSoftnessOrthoLin(orthoLin);
+	slider->setSoftnessOrthoAng(orthoAng*SIMD_2_PI);
 }
 
-export int zbtSetSliderRestitution(int constraintId, float dirLin, float dirAng, float limLin, float limAng,
+EXPORT void zbtSetSliderRestitution(btSliderConstraint* slider,
+	float dirLin, float dirAng, float limLin, float limAng,
 	float orthoLin, float orthoAng) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btSliderConstraint*, sc, constraintId);
-
-	sc->setRestitutionDirLin(dirLin);
-	sc->setRestitutionDirAng(dirAng*SIMD_2_PI);
-	sc->setRestitutionLimLin(limLin);
-	sc->setRestitutionLimAng(limAng*SIMD_2_PI);
-	sc->setRestitutionOrthoLin(orthoLin);
-	sc->setRestitutionOrthoAng(orthoAng*SIMD_2_PI);
-
-	return DONE;
+	slider->setRestitutionDirLin(dirLin);
+	slider->setRestitutionDirAng(dirAng*SIMD_2_PI);
+	slider->setRestitutionLimLin(limLin);
+	slider->setRestitutionLimAng(limAng*SIMD_2_PI);
+	slider->setRestitutionOrthoLin(orthoLin);
+	slider->setRestitutionOrthoAng(orthoAng*SIMD_2_PI);
 }
 
-export int zbtSetSliderDamping(int constraintId, float dirLin, float dirAng, float limLin, float limAng,
+EXPORT void zbtSetSliderDamping(btSliderConstraint* slider,
+	float dirLin, float dirAng, float limLin, float limAng,
 	float orthoLin, float orthoAng) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btSliderConstraint*, sc, constraintId);
-
-	sc->setDampingDirLin(dirLin);
-	sc->setDampingDirAng(dirAng*SIMD_2_PI);
-	sc->setDampingLimLin(limLin);
-	sc->setDampingLimAng(limAng*SIMD_2_PI);
-	sc->setDampingOrthoLin(orthoLin);
-	sc->setDampingOrthoAng(orthoAng*SIMD_2_PI);
-
-	return DONE;
+	slider->setDampingDirLin(dirLin);
+	slider->setDampingDirAng(dirAng);
+	slider->setDampingLimLin(limLin);
+	slider->setDampingLimAng(limAng);
+	slider->setDampingOrthoLin(orthoLin);
+	slider->setDampingOrthoAng(orthoAng);
 }
 
-export int zbtEnableSliderMotor(int constraintId, bool bEnableLinMotor, float targetLinVelocity, float maxLinForce,
-	bool bEnableAngMotor, float targetAngVelocity, float maxAngForce) {
+EXPORT void zbtEnableSliderLinearMotor(btSliderConstraint* slider,
+	bool bEnableMotor, float targetVelocity, float maxForce) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btSliderConstraint*, sc, constraintId);
-
-	sc->setPoweredLinMotor(bEnableLinMotor);
-	if(bEnableLinMotor) {
-		sc->setTargetLinMotorVelocity(targetLinVelocity);
-		sc->setMaxLinMotorForce(maxLinForce);
+	slider->setPoweredLinMotor(bEnableMotor);
+	if (bEnableMotor) {
+		slider->setTargetLinMotorVelocity(targetVelocity);
+		slider->setMaxLinMotorForce(maxForce);
 	}
-
-	sc->setPoweredAngMotor(bEnableAngMotor);
-	if(bEnableAngMotor) {
-		sc->setTargetAngMotorVelocity(targetAngVelocity*SIMD_2_PI);
-		sc->setMaxAngMotorForce(maxAngForce);
-	}
-
-	return DONE;
 }
 
-export int zbtAddGeneric6DofConstraint(int rigidBodyAId, int rigidBodyBId,
+EXPORT void zbtEnableSliderAngularMotor(btSliderConstraint* slider,
+	bool bEnableMotor, float targetVelocity, float maxForce) {
+
+	slider->setPoweredAngMotor(bEnableMotor);
+	if (bEnableMotor) {
+		slider->setTargetAngMotorVelocity(targetVelocity*SIMD_2_PI);
+		slider->setMaxAngMotorForce(maxForce);
+	}
+}
+
+EXPORT btTypedConstraint* zbtAddGearConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
+	float axisAx, float axisAy, float axisAz, float axisBx, float axisBy, float axisBz,
+	float ratio) {
+
+	btTypedConstraint* tc = new btGearConstraint(*rigidBodyA, *rigidBodyB,
+		btVector3(axisAx, axisAy, axisAz), btVector3(axisBx, axisBy, axisBz),
+		ratio);
+	gWorld->addConstraint(tc, true);
+
+	return tc;
+}
+
+EXPORT void zbtSetGearConstraint(btGearConstraint* gear,
+	float axisAx, float axisAy, float axisAz, float axisBx, float axisBy, float axisBz,
+	float ratio) {
+
+	btVector3 axisA = btVector3(axisAx, axisAy, axisAz);
+	btVector3 axisB = btVector3(axisBx, axisBy, axisBz);
+
+	gear->setAxisA((btVector3&)axisA);
+	gear->setAxisB((btVector3&)axisB);
+	gear->setRatio(ratio);
+}
+
+EXPORT btTypedConstraint* zbtAddGeneric6DofConstraint1(btRigidBody* rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	bool bUseLinearReferenceWorldFrame) {
+
+	btTypedConstraint* tc = new btGeneric6DofConstraint(*rigidBody,
+		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ),
+		bUseLinearReferenceWorldFrame);
+	gWorld->addConstraint(tc, false);
+
+	return tc;
+}
+
+EXPORT btTypedConstraint* zbtAddGeneric6DofConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
 	float pivotAx, float pivotAy, float pivotAz,
 	float pivotBx, float pivotBy, float pivotBz,
 	float rotAx, float rotAy, float rotAz,
-	float rotBx, float rotBy, float rotBz, bool bUseLinearReferenceFrameA, bool bDisableCollision) {
+	float rotBx, float rotBy, float rotBz, bool bUseLinearReferenceFrameA, bool bDisableCollision ) {
 
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbA, rigidBodyAId);
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rbB, rigidBodyBId);
-
-	btTypedConstraint* tc = new btGeneric6DofConstraint(*rbA, *rbB,
-		btTransform(btQuaternion(rotAz*SIMD_2_PI, rotAy*SIMD_2_PI, rotAx*SIMD_2_PI), btVector3(pivotAx, pivotAy, pivotAz)),
-		btTransform(btQuaternion(rotBz*SIMD_2_PI, rotBy*SIMD_2_PI, rotBx*SIMD_2_PI), btVector3(pivotBx, pivotBy, pivotBz)),
+	btTypedConstraint* tc = new btGeneric6DofConstraint(*rigidBodyA, *rigidBodyB,
+		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
+		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz),
 		bUseLinearReferenceFrameA);
-	gWorld->addConstraint(tc, bDisableCollision);
+	gWorld->addConstraint(tc, bDisableCollision );
 
-	ADD_TO_LIST(gConstraintList, tc);
+	return tc;
 }
 
-export int zbtSetGeneric6DofLimits(int constraintId, int axis, float lo, float hi) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btGeneric6DofConstraint*, dc, constraintId);
+EXPORT void zbtSetGeneric6DofLimits(btGeneric6DofConstraint* dof,
+	int axis, float lower, float upper) {
 
 	if(axis < 3)
-		dc->setLimit(axis, lo, hi); // linear
+		dof->setLimit(axis, lower, upper); // linear
 	else
-		dc->setLimit(axis, lo*SIMD_2_PI, hi*SIMD_2_PI); // angular
-
-	return DONE;
+		dof->setLimit(axis, lower*SIMD_2_PI, upper*SIMD_2_PI); // angular
 }
 
-export int zbtSetGeneric6DofLinearLimits(int constraintId, float lowerX, float lowerY, float lowerZ,
+EXPORT void zbtSetGeneric6DofLinearLimits(btGeneric6DofConstraint* dof,
+	float lowerX, float lowerY, float lowerZ,
 	float upperX, float upperY, float upperZ) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btGeneric6DofConstraint*, dc, constraintId);
-
-	dc->setLinearLowerLimit(btVector3(lowerX, lowerY, lowerZ));
-	dc->setLinearUpperLimit(btVector3(upperX, upperY, upperZ));
-
-	return DONE;
+	dof->setLinearLowerLimit(btVector3(lowerX, lowerY, lowerZ));
+	dof->setLinearUpperLimit(btVector3(upperX, upperY, upperZ));
 }
 
-export int zbtSetGeneric6DofAngularLimits(int constraintId, float lowerX, float lowerY, float lowerZ,
+EXPORT void zbtSetGeneric6DofAngularLimits(btGeneric6DofConstraint* dof,
+	float lowerX, float lowerY, float lowerZ,
 	float upperX, float upperY, float upperZ) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btGeneric6DofConstraint*, dc, constraintId);
-
-	dc->setAngularLowerLimit(btVector3(lowerX*SIMD_2_PI, lowerY*SIMD_2_PI, lowerZ*SIMD_2_PI));
-	dc->setAngularUpperLimit(btVector3(upperX*SIMD_2_PI, upperY*SIMD_2_PI, upperZ*SIMD_2_PI));
-
-	return DONE;
+	dof->setAngularLowerLimit(btVector3(lowerX, lowerY, lowerZ) * SIMD_2_PI);
+	dof->setAngularUpperLimit(btVector3(upperX, upperY, upperZ) * SIMD_2_PI);
 }
 
-export int zbtDeleteConstraint(int constraintId) {
-	GET_ITEM_FROM_LIST(gConstraintList, btTypedConstraint*, tc, constraintId);
-	gWorld->removeConstraint(tc);
-	gConstraintList[constraintId] = NULL;
-	delete tc;
+EXPORT btTypedConstraint* zbtAddGeneric6DofSpringConstraint1(btRigidBody* rigidBody,
+	float pivotX, float pivotY, float pivotZ,
+	float rotX, float rotY, float rotZ,
+	bool bUseLinearReferenceWorldFrame) {
 
-	return DONE;
+	btTypedConstraint* tc = new btGeneric6DofSpringConstraint(*rigidBody,
+		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ),
+		bUseLinearReferenceWorldFrame);
+	gWorld->addConstraint(tc, false);
+
+	return tc;
+}
+
+EXPORT btTypedConstraint* zbtAddGeneric6DofSpringConstraint(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB,
+	float pivotAx, float pivotAy, float pivotAz,
+	float pivotBx, float pivotBy, float pivotBz,
+	float rotAx, float rotAy, float rotAz,
+	float rotBx, float rotBy, float rotBz, bool bUseLinearReferenceFrameA, bool bDisableCollision) {
+
+	btTypedConstraint* tc = new btGeneric6DofSpringConstraint(*rigidBodyA, *rigidBodyB,
+		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
+		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz),
+		bUseLinearReferenceFrameA);
+	gWorld->addConstraint(tc, bDisableCollision);
+
+	return tc;
+}
+
+EXPORT void zbtSetGeneric6DofSpring(btGeneric6DofSpringConstraint* spring,
+	int axis, bool bEnableSpring, float stiffness, float damping,
+	float equilibriumPoint) {
+
+	spring->enableSpring(axis, bEnableSpring);
+	if (bEnableSpring){
+		spring->setStiffness(axis, stiffness);
+		spring->setDamping(axis, damping);
+
+		if (axis < 3)
+			spring->setEquilibriumPoint(axis, equilibriumPoint); // linear
+		else
+			spring->setEquilibriumPoint(axis, equilibriumPoint*SIMD_2_PI); // angular
+	}
+}
+
+EXPORT void zbtDeleteConstraint(btTypedConstraint* constraint) {
+	gWorld->removeConstraint(constraint);
+	delete constraint;
 }
 
 
 // Raycast vehicle
 
-// use before zbtCreateRaycastVehicle or zbtAddWheel
-export int zbtSetVehicleTunning(float suspStiffness, float suspCompression,
+EXPORT void zbtSetVehicleTunning(float suspStiffness, float suspCompression,
 	float suspDamping, float maxSuspTravelCm, float maxSuspForce,
 	float frictionSlip) {
 
@@ -734,479 +770,517 @@ export int zbtSetVehicleTunning(float suspStiffness, float suspCompression,
 	gTuning.m_maxSuspensionTravelCm = maxSuspTravelCm;
 	gTuning.m_frictionSlip = frictionSlip;
 	gTuning.m_maxSuspensionForce = maxSuspForce;
-
-	return DONE;
 }
 
-export int zbtCreateRaycastVehicle(int rigidBodyId, int rightIndex, int upIndex, int forwardIndex) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, carChassis, rigidBodyId);
+EXPORT btRaycastVehicle* zbtCreateRaycastVehicle(btRigidBody* carChassis,
+	int rightAxis, int upAxis, int forwardAxis) {
 
 	if(!gVehicleRaycaster) gVehicleRaycaster = new btDefaultVehicleRaycaster(gWorld);
 	btRaycastVehicle* rv = new btRaycastVehicle(gTuning, carChassis, gVehicleRaycaster);
-	rv->setCoordinateSystem(rightIndex, upIndex, forwardIndex);
+	rv->setCoordinateSystem(rightAxis, upAxis, forwardAxis);
 	gWorld->addVehicle(rv);
 	carChassis->setActivationState(DISABLE_DEACTIVATION); //necessary
-	ADD_TO_LIST(gConstraintList, (btTypedConstraint*) rv);
+
+	return rv;
 }
 
-export int zbtAddWheel(int vehicleId,
+EXPORT int zbtAddWheel(btRaycastVehicle* vehicle,
 	float connectionPointX, float connectionPointY, float connectionPointZ,
 	float directionX, float directionY, float directionZ,
 	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
 	float wheelRadius, float suspRestLength, bool bIsFrontWheel) {
 
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-
-	btWheelInfo wi = rv->addWheel(btVector3(connectionPointX, connectionPointY, connectionPointZ),
+	btWheelInfo wi = vehicle->addWheel(btVector3(connectionPointX, connectionPointY, connectionPointZ),
 		btVector3(directionX, directionY, directionZ), btVector3(wheelAxleX, wheelAxleY, wheelAxleZ),
 		suspRestLength, wheelRadius, gTuning, bIsFrontWheel);
 
-	return rv->getNumWheels()-1;
+	return vehicle->getNumWheels() - 1;
 }
 
-export int zbtSetWheelIsFront(int vehicleId, int wheelId, bool bIsFront) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_bIsFrontWheel = bIsFront;
-	return DONE;
+EXPORT void zbtSetWheelIsFront(btRaycastVehicle* vehicle, int wheelId, bool bIsFront) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_bIsFrontWheel = bIsFront;
 }
 
-export int zbtSetWheelRadius(int vehicleId, int wheelId, float radius) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_wheelsRadius = radius;
-	return DONE;
+EXPORT void zbtSetWheelRadius(btRaycastVehicle* vehicle, int wheelId, float radius) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_wheelsRadius = radius;
 }
 
-export int zbtSetWheelEngineForce(int vehicleId, int wheelId, float engineForce) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_engineForce = engineForce;
-	return DONE;
+EXPORT void zbtSetWheelRollInfluence(btRaycastVehicle* vehicle, int wheelId, float rollInfluence) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_rollInfluence = rollInfluence;
 }
 
-export int zbtSetWheelBreakAmount(int vehicleId, int wheelId, float brakeAmount) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_brake = brakeAmount;
-	return DONE;
+EXPORT void zbtSetWheelFrictionSlip(btRaycastVehicle* vehicle, int wheelId, float frictionSlip) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_frictionSlip = frictionSlip;
 }
 
-export int zbtSetWheelRollInfluence(int vehicleId, int wheelId, float rollInfluence) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_rollInfluence = rollInfluence;
-	return DONE;
+EXPORT void zbtSetWheelSuspRestLength(btRaycastVehicle* vehicle, int wheelId, float suspRestLength) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_suspensionRestLength1 = suspRestLength;
 }
 
-export int zbtSetWheelFrictionSlip(int vehicleId, int wheelId, float frictionSlip) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_frictionSlip = frictionSlip;
-	return DONE;
+EXPORT void zbtSetWheelMaxSuspTravel(btRaycastVehicle* vehicle, int wheelId, float maxSuspTravel) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_maxSuspensionTravelCm = maxSuspTravel;
 }
 
-export int zbtSetWheelSuspRestLength(int vehicleId, int wheelId, float suspRestLength) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_suspensionRestLength1 = suspRestLength;
-	return DONE;
+EXPORT void zbtSetWheelSuspStiffness(btRaycastVehicle* vehicle, int wheelId, float suspStiffness) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_suspensionStiffness = suspStiffness;
 }
 
-export int zbtSetWheelMaxSuspTravel(int vehicleId, int wheelId, float maxSuspTravel) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_maxSuspensionTravelCm = maxSuspTravel;
-	return DONE;
+EXPORT void zbtSetWheelDampingCompression(btRaycastVehicle* vehicle, int wheelId, float dampingCompression) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_wheelsDampingCompression = dampingCompression;
 }
 
-export int zbtSetWheelSuspStiffness(int vehicleId, int wheelId, float suspStiffness) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_suspensionStiffness = suspStiffness;
-	return DONE;
+EXPORT void zbtSetWheelDampingRelaxation(btRaycastVehicle* vehicle, int wheelId, float dampingRelaxation) {
+	checkWheel(vehicle, wheelId);
+	vehicle->getWheelInfo(wheelId).m_wheelsDampingRelaxation = dampingRelaxation;
 }
 
-export int zbtSetWheelDampingCompression(int vehicleId, int wheelId, float dampingCompression) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_wheelsDampingCompression = dampingCompression;
-	return DONE;
+EXPORT void zbtSetWheelSteering(btRaycastVehicle* vehicle, int wheelId, float steering) {
+	vehicle->setSteeringValue(steering, wheelId);
 }
 
-export int zbtSetWheelDampingRelaxation(int vehicleId, int wheelId, float dampingRelaxation) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->getWheelInfo(wheelId).m_wheelsDampingRelaxation = dampingRelaxation;
-	return DONE;
+EXPORT void zbtSetWheelEngineForce(btRaycastVehicle* vehicle, int wheelId, float force) {
+	vehicle->applyEngineForce(force, wheelId);
 }
 
-export int zbtSetVehicleSteeringValue(int vehicleId, int wheelId, float steering) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->setSteeringValue(steering, wheelId);
-	return DONE;
+EXPORT void zbtSetWheelBrake(btRaycastVehicle* vehicle, int wheelId, float brake) {
+	vehicle->setBrake(brake, wheelId);
 }
 
-export int zbtSetVehicleEngineForce(int vehicleId, int wheelId, float force) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->applyEngineForce(force, wheelId);
-	return DONE;
+/* Bullet ignores setting pitch control
+EXPORT void zbtSetVehiclePitchControl(btRaycastVehicle* vehicle, float pitch) {
+	vehicle->setPitchControl(pitch);
+}*/
+
+EXPORT void zbtResetVehicleSusp(btRaycastVehicle* vehicle) {
+	vehicle->resetSuspension();
 }
 
-export int zbtSetVehicleBrake(int vehicleId, int wheelId, float brake) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	rv->setBrake(brake, wheelId);
-	return DONE;
+EXPORT float zbtGetVehicleCurrentSpeed(btRaycastVehicle* vehicle) {
+	return vehicle->getCurrentSpeedKmHour();
 }
 
-export int zbtSetVehiclePitchControl(int vehicleId, float pitch) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	rv->setPitchControl(pitch);
-	return DONE;
+EXPORT void zbtGetWheelPositionXYZ(btRaycastVehicle* vehicle, int wheelId,
+	float &outX, float &outY, float &outZ) {
+
+	btVector3 pos = vehicle->getWheelTransformWS(wheelId).getOrigin();
+	outX = pos.getX();
+	outY = pos.getY();
+	outZ = pos.getZ();
 }
 
-export int zbtResetVehicleSusp(int vehicleId) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	rv->resetSuspension();
-	return DONE;
+EXPORT void zbtGetWheelPosition(btRaycastVehicle* vehicle, int wheelId, v3 &outPosition) {
+	zbtGetWheelPositionXYZ(vehicle, wheelId, outPosition.x, outPosition.y, outPosition.z);
 }
 
-export float zbtGetVehicleCurrentSpeed(int vehicleId) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	return rv->getCurrentSpeedKmHour();
+EXPORT void zbtGetWheelRotationXYZ(btRaycastVehicle* vehicle, int wheelId,
+	float &outRx, float &outRy, float &outRz) {
+
+	vehicle->getWheelTransformWS(wheelId).getBasis().getEulerZYX(outRz, outRy, outRx);
+	outRx /= SIMD_2_PI;
+	outRy /= SIMD_2_PI;
+	outRz /= SIMD_2_PI;
 }
 
-export int zbtGetWheelPositionXYZ(int vehicleId, int wheelId, float &x, float &y, float &z) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
-	x = rv->getWheelTransformWS(wheelId).getOrigin().getX();
-	y = rv->getWheelTransformWS(wheelId).getOrigin().getY();
-	z = rv->getWheelTransformWS(wheelId).getOrigin().getZ();
-	return DONE;
+EXPORT void zbtGetWheelRotation(btRaycastVehicle* vehicle, int wheelId, v3 &outRotation) {
+	zbtGetWheelRotationXYZ(vehicle, wheelId, outRotation.x, outRotation.y, outRotation.z);
 }
 
-export int zbtGetWheelPosition(int vehicleId, int wheelId, float pos[3]) {
-	return zbtGetWheelPositionXYZ(vehicleId, wheelId, pos[0], pos[1], pos[2]);
+EXPORT void zbtGetWheelPosRotXYZ(btRaycastVehicle* vehicle, int wheelId,
+	float &outX, float &outY, float &outZ, float &outRx, float &outRy, float &outRz) {
+
+	zbtGetWheelPositionXYZ(vehicle, wheelId, outX, outY, outZ);
+	zbtGetWheelRotationXYZ(vehicle, wheelId, outRx, outRy, outRz);
 }
 
-export int zbtGetWheelRotationXYZ(int vehicleId, int wheelId, float &rx, float &ry, float &rz) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	CHECK_WHEEL(wheelId);
+EXPORT void zbtGetWheelPosRot(btRaycastVehicle* vehicle, int wheelId,
+	v3 &outPosition, v3 &outRotation) {
 
-	//rv->getWheelInfo(wheelId).m_worldTransform.getBasis().getEulerZYX(rz, ry, rx);
-	rv->getWheelTransformWS(wheelId).getBasis().getEulerZYX(rz, ry, rx);
-	rx /= SIMD_2_PI;
-	ry /= SIMD_2_PI;
-	rz /= SIMD_2_PI;
-	return DONE;
+	zbtGetWheelPositionXYZ(vehicle, wheelId, outPosition.x, outPosition.y, outPosition.z);
+	zbtGetWheelRotationXYZ(vehicle, wheelId, outRotation.x, outRotation.y, outRotation.z);
 }
 
-export int zbtGetWheelRotation(int vehicleId, int wheelId, float rot[3]) {
-	return zbtGetWheelRotationXYZ(vehicleId, wheelId, rot[0], rot[1], rot[2]);
-}
-
-export int zbtGetWheelPosRotXYZ(int vehicleId, int wheelId,
-	float &x, float &y, float &z, float &rx, float &ry, float &rz) {
-
-	zbtGetWheelPositionXYZ(vehicleId, wheelId, x, y, z);
-	zbtGetWheelRotationXYZ(vehicleId, wheelId, rx, ry, rz);
-	return DONE;
-}
-
-export int zbtGetWheelPosRot(int vehicleId, int wheelId, float pos[3], float rot[3]) {
-	zbtGetWheelPositionXYZ(vehicleId, wheelId, pos[0], pos[1], pos[2]);
-	zbtGetWheelRotationXYZ(vehicleId, wheelId, rot[0], rot[1], rot[2]);
-	return DONE;	
-}
-
-export int zbtDeleteRaycastVehicle(int vehicleId) {
-	GET_ITEM_FROM_MIXED_LIST(gConstraintList, btRaycastVehicle*, rv, vehicleId);
-	gWorld->removeVehicle(rv);
-	gConstraintList[vehicleId] = NULL;
-	delete rv;
-
-	return DONE;
+// must be called before zbtDestroyWorld explicitly
+EXPORT void zbtDeleteRaycastVehicle(btRaycastVehicle* vehicle) {
+	gWorld->removeVehicle(vehicle);
+	delete vehicle;
 }
 
 
-/* ***************************************************************************
 // Ghost object
 
-// TODO !!! WORKING HERE !!!
-// TODO ghost objects - find more examples and check the existing code
+EXPORT btCollisionObject* zbtCreateGhostObject(btCollisionShape* shape,
+	float x, float y, float z, float rx, float ry, float rz) {
 
-export int zbtAddGhostObject(int shapeId, float x, float y, float z, float rx, float ry, float rz)
-{
-	IS_INITIALIZED;
-
-	GET_ITEM_FROM_LIST(gCollisionShapeList, btCollisionShape*, shape, shapeId);
-	btPairCachingGhostObject* ghostObject = new btPairCachingGhostObject();
+	btGhostObject* ghostObject = new btPairCachingGhostObject();
 	ghostObject->setCollisionShape(shape);
-	ghostObject->setWorldTransform(btTransform(btQuaternion(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI), btVector3(x, y, z)));
-	ghostObject->setCollisionFlags (btCollisionObject::CF_CHARACTER_OBJECT); // ???
+	ghostObject->setWorldTransform(transform(x, y, z, rx, ry, rz));
+	if (gCreateGhostPairCallback){
+		//gWorld->getPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+		gBroadphase->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+		gCreateGhostPairCallback = false;
+	}
 	gWorld->addCollisionObject(ghostObject);
-	ADD_TO_LIST(gCollisionObjectList, ghostObject);
+
+	return ghostObject;
 }
 
-export int zbtDeleteGhostObject(int ghostObjectId)
-{
-	GET_ITEM_FROM_MIXED_LIST(gCollisionObjectList, btGhostObject*, go, ghostObjectId);
-	gWorld->removeCollisionObject(go);
-	gCollisionObjectList[ghostObjectId] = NULL;
-	delete go;
-
-	return DONE;
+EXPORT void zbtDeleteGhostObject(btGhostObject* ghostObject) {
+	gWorld->removeCollisionObject(ghostObject);
+	delete ghostObject;
 }
 
-// TODO Kinematic character controller - is it really necessary in ZGE???, is not ghost object sufficient?
+EXPORT int zbtGetNumOverlappingObjects(btGhostObject* ghostObject) {
+	return ghostObject->getNumOverlappingObjects();
+}
 
-// ***************************************************************************
-*/
+EXPORT btCollisionObject* zbtGetOverlappingObject(btGhostObject* ghostObject, int index) {
+	return ghostObject->getOverlappingObject(index);
+}
+
+
+// Kinematic character controller
+
+EXPORT btKinematicCharacterController* zbtCreateKinematicCharacterController(
+	btPairCachingGhostObject* ghostObject, float stepHeight){
+
+	ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
+	btKinematicCharacterController* controller = new btKinematicCharacterController(ghostObject,
+		(btConvexShape*)ghostObject->getCollisionShape(), stepHeight);
+	gWorld->addAction(controller);
+
+	return controller;
+}
+
+EXPORT void zbtDeleteKinematicCharacterController(btKinematicCharacterController* controller) {
+	gWorld->removeAction(controller);
+	delete controller;
+}
+
+EXPORT void zbtSetCharacterUpAxis(btKinematicCharacterController* controller, int axis) {
+	controller->setUpAxis(axis);
+}
+
+EXPORT void zbtSetCharacterWalkDirection(btKinematicCharacterController* controller,
+	float x, float y, float z) {
+
+	controller->setWalkDirection(btVector3(x, y, z));
+}
+
+EXPORT void zbtSetCharacterVelocityForTimeInterval(btKinematicCharacterController* controller,
+	float x, float y, float z, float timeInterval) {
+
+	controller->setVelocityForTimeInterval(btVector3(x, y, z), timeInterval);
+}
+
+EXPORT void zbtCharacterWarp(btKinematicCharacterController* controller,
+	float x, float y, float z) {
+
+	controller->warp(btVector3(x, y, z));
+}
+
+EXPORT void zbtSetCharacterFallSpeed(btKinematicCharacterController* controller,
+	float fallSpeed) {
+
+	controller->setFallSpeed(fallSpeed);
+}
+
+EXPORT void zbtSetCharacterJumpSpeed(btKinematicCharacterController* controller,
+	float jumpSpeed) {
+
+	controller->setJumpSpeed(jumpSpeed);
+}
+
+EXPORT void zbtSetCharacterMaxJumpHeight(btKinematicCharacterController* controller,
+	float maxJumpHeight) {
+
+	controller->setMaxJumpHeight(maxJumpHeight);
+}
+
+EXPORT bool zbtCharacterCanJump(btKinematicCharacterController* controller) {
+
+	return controller->canJump();
+}
+
+EXPORT void zbtCharacterJump(btKinematicCharacterController* controller) {
+
+	controller->jump();
+}
+
+EXPORT void zbtSetCharacterGravity(btKinematicCharacterController* controller,
+	float gravity) {
+
+	controller->setGravity(gravity);
+}
+
+EXPORT void zbtSetCharacterMaxSlope(btKinematicCharacterController* controller,
+	float slope) {
+
+	controller->setMaxSlope(slope * SIMD_2_PI);
+}
+
+EXPORT void zbtSetCharacterUseGhostSweepTest(btKinematicCharacterController* controller,
+	bool bUseGhostObjectSweepTest) {
+
+	controller->setUseGhostSweepTest(bUseGhostObjectSweepTest);
+}
+
+EXPORT bool zbtCharacterOnGround(btKinematicCharacterController* controller) {
+
+	return controller->onGround();
+}
+
+EXPORT void zbtCharacterReset(btKinematicCharacterController* controller) {
+
+	controller->reset(gWorld);
+}
+
+EXPORT void zbtSetCharacterUpInterpolate(btKinematicCharacterController* controller,
+	bool bInterpolate) {
+
+	controller->setUpInterpolate(bInterpolate);
+}
+
 
 // Collision objects (in general)
 
-export int zbtSetFriction(int collisionObjectId, float friction) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	co->setFriction(friction);
-	return DONE;
+EXPORT void zbtSetFriction(btCollisionObject* obj, float friction) {
+	obj->setFriction(friction);
 }
 
-export int zbtSetRestitution(int collisionObjectId, float restitution) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	co->setRestitution(restitution);
-	return DONE;
+EXPORT void zbtSetRestitution(btCollisionObject* obj, float restitution) {
+	obj->setRestitution(restitution);
 }
 
-export int zbtSetHitFraction(int collisionObjectId, float hitFraction) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	co->setHitFraction(hitFraction);
-	return DONE;
+/*EXPORT void zbtSetHitFraction(btCollisionObject* obj, float hitFraction) {
+	obj->setHitFraction(hitFraction);
+}*/
+
+EXPORT void zbtGetPositionXYZ(btCollisionObject* obj,
+	float &outX, float &outY, float &outZ) {
+
+	btVector3 pos = obj->getWorldTransform().getOrigin();
+	outX = pos.getX();
+	outY = pos.getY();
+	outZ = pos.getZ();
 }
 
-export int zbtGetPositionXYZ(int collisionObjectId, float &x, float &y, float &z) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	x = co->getWorldTransform().getOrigin().getX();
-	y = co->getWorldTransform().getOrigin().getY();
-	z = co->getWorldTransform().getOrigin().getZ();
-	return DONE;
+EXPORT void zbtGetPosition(btCollisionObject* obj, v3 &outPosition) {
+	zbtGetPositionXYZ(obj, outPosition.x, outPosition.y, outPosition.z);
 }
 
-export int zbtGetPosition(int collisionObjectId, float pos[3]) {
-	return zbtGetPositionXYZ(collisionObjectId, pos[0], pos[1], pos[2]);
-}
-
-export int zbtSetPosition(int collisionObjectId, float x, float y, float z) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	btTransform trans = co->getWorldTransform();
+EXPORT void zbtSetPosition(btCollisionObject* obj, float x, float y, float z) {
+	btTransform trans = obj->getWorldTransform();
 	trans.setOrigin(btVector3(x, y, z));
-	co->setWorldTransform(trans);
-	return DONE;
+	obj->setWorldTransform(trans);
 }
 
-export int zbtGetRotationXYZ(int collisionObjectId, float &rx, float &ry, float &rz) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
+EXPORT void zbtGetRotationXYZ(btCollisionObject* obj,
+	float &outRx, float &outRy, float &outRz) {
 
-	co->getWorldTransform().getBasis().getEulerZYX(rz, ry, rx);
-	rx /= SIMD_2_PI;
-	ry /= SIMD_2_PI;
-	rz /= SIMD_2_PI;
-
-	return DONE;
+	obj->getWorldTransform().getBasis().getEulerZYX(outRz, outRy, outRx);
+	outRx /= SIMD_2_PI;
+	outRy /= SIMD_2_PI;
+	outRz /= SIMD_2_PI;
 }
 
-export int zbtGetRotation(int collisionObjectId, float rot[3]) {
-	return zbtGetRotationXYZ(collisionObjectId, rot[0], rot[1], rot[2]);
+EXPORT void zbtGetRotation(btCollisionObject* obj, v3 &outRotation) {
+	zbtGetRotationXYZ(obj, outRotation.x, outRotation.y, outRotation.z);
 }
 
-export int zbtSetRotation(int collisionObjectId, float rx, float ry, float rz) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	btTransform trans = co->getWorldTransform();
-	trans.setRotation(btQuaternion(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI));
-	co->setWorldTransform(trans);
-	return DONE;
+EXPORT void zbtSetRotation(btCollisionObject* obj, float rx, float ry, float rz) {
+	btTransform trans = obj->getWorldTransform();
+	trans.setRotation(btQuaternion(ry*SIMD_2_PI, rx*SIMD_2_PI, rz*SIMD_2_PI));
+	obj->setWorldTransform(trans);
 }
 
-export int zbtGetPosRotXYZ(int collisionObjectId, float &x, float &y, float &z,
-	float &rx, float &ry, float &rz) {
+EXPORT void zbtGetPosRotXYZ(btCollisionObject* obj,
+	float &outX, float &outY, float &outZ,
+	float &outRx, float &outRy, float &outRz) {
 
-	zbtGetPositionXYZ(collisionObjectId, x, y, z);
-	zbtGetRotationXYZ(collisionObjectId, rx, ry, rz);
-	return DONE;
+	zbtGetPositionXYZ(obj, outX, outY, outZ);
+	zbtGetRotationXYZ(obj, outRx, outRy, outRz);
 }
 
-export int zbtGetPosRot(int collisionObjectId, float pos[3], float rot[3]) {
+EXPORT void zbtGetPosRot(btCollisionObject* obj, v3 &outPosition, v3 &outRotation) {
 
-	zbtGetPositionXYZ(collisionObjectId, pos[0], pos[1], pos[2]);
-	zbtGetRotationXYZ(collisionObjectId, rot[0], rot[1], rot[2]);
-	return DONE;
+	zbtGetPositionXYZ(obj, outPosition.x, outPosition.y, outPosition.z);
+	zbtGetRotationXYZ(obj, outRotation.x, outRotation.y, outRotation.z);
 }
 
-// Activation and deactivation
-
-export int zbtIsActive(int collisionObjectId) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	return int(co->isActive());
+EXPORT void zbtSetCollisionFlags(btCollisionObject* obj, int flags) {
+	obj->setCollisionFlags(flags);
 }
 
-export int zbtActivate(int collisionObjectId, bool bForceActivation) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	co->activate(bForceActivation);
-	return DONE;
+EXPORT bool zbtIsActive(btCollisionObject* obj) {
+	return obj->isActive();
 }
 
-export int zbtSetActivationState(int collisionObjectId, int newState) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	co->setActivationState(newState);
-	return DONE;
+EXPORT void zbtActivate(btCollisionObject* obj, bool bForceActivation) {
+	obj->activate(bForceActivation);
 }
 
-export int zbtSetDeactivationTime(int collisionObjectId, float time) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
-	co->setDeactivationTime(time);
-	return DONE;
+EXPORT void zbtSetActivationState(btCollisionObject* obj, int newState) {
+	obj->setActivationState(newState);
 }
 
-export int zbtSetDeactivationThresholds(int rigidBodyId, float linear, float angular) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btRigidBody*, rb, rigidBodyId);
-	rb->setSleepingThresholds(linear, angular*SIMD_2_PI);
-	return DONE;
+EXPORT void zbtForceActivationState(btCollisionObject* obj, int newState) {
+	obj->forceActivationState(newState);
 }
+
+EXPORT void zbtSetDeactivationTime(btCollisionObject* obj, float time) {
+	obj->setDeactivationTime(time);
+}
+
+EXPORT void zbtSetUserIndex(btCollisionObject* obj, int index) {
+	obj->setUserIndex(index);
+}
+
+EXPORT int zbtGetUserIndex(btCollisionObject* obj) {
+	return obj->getUserIndex();
+}
+
+EXPORT void zbtSetUserPointer(btCollisionObject* obj, void* pointer) {
+	obj->setUserPointer(pointer);
+}
+
+EXPORT void* zbtGetUserPointer(btCollisionObject* obj) {
+	return obj->getUserPointer();
+}
+
 
 // Collision detection
 
-export int zbtGetCollisionNum() {
-	IS_INITIALIZED;
-	return gWorld->getDispatcher()->getNumManifolds();
+EXPORT void zbtSetIgnoreCollisionCheck(btCollisionObject* objA, btCollisionObject* objB,
+	bool bIgnoreCollisionCheck) {
+
+	objA->setIgnoreCollisionCheck(objB, bIgnoreCollisionCheck);
 }
 
-export int zbtGetCollisionObjects(int index, int &collisionObject1, int &collisionObject2) {
-	IS_INITIALIZED;
+EXPORT int zbtStartCollisionDetection() {
+	gManifoldIndex = gWorld->getDispatcher()->getNumManifolds();
+	gManifoldPointIndex = -1;
 
-	try 	{
-		collisionObject1 = gCollisionObjectList.findLinearSearch((btCollisionObject*)gWorld->getDispatcher()->
-			getManifoldByIndexInternal(index)->getBody0());
-
-		collisionObject2 = gCollisionObjectList.findLinearSearch((btCollisionObject*)gWorld->getDispatcher()->
-			getManifoldByIndexInternal(index)->getBody0());
-
-		if(collisionObject1 < gCollisionObjectList.size() && collisionObject2 < gCollisionObjectList.size()) return DONE;
-		else return ERROR;
-	} catch (...) {return ERROR;}
+	return gManifoldIndex;
 }
 
-// NEEDED? !!!
-/*export int zbtGetCollisionObject1(int index)
-{
-	IS_INITIALIZED;
-	try
-	{
-		int i = gCollisionObjectList.findLinearSearch((btCollisionObject*)gWorld->getDispatcher()->
-			getManifoldByIndexInternal(index)->getBody0());
+EXPORT bool zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &outObjB,
+	v3 &outPosA, v3 &outPosB, v3 &outNormal) {
 
-		if(i < gCollisionObjectList.size()) return i;
-		else return ERROR;
-	} catch (...) {return ERROR;}
-}*/
+	if (gManifoldPointIndex < 0){
 
-// NEEDED? !!!
-/*export int zbtGetCollisionObject2(int index)
-{
-	IS_INITIALIZED;
-	try
-	{
-		int i = gCollisionObjectList.findLinearSearch((btCollisionObject*)gWorld->getDispatcher()->
-			getManifoldByIndexInternal(index)->getBody1());
+		if (gManifoldIndex == 0) return false;
+		gManifoldIndex--;
+		gManifold = gWorld->getDispatcher()->getManifoldByIndexInternal(gManifoldIndex);
 
-		if(i < gCollisionObjectList.size()) return i;
-		else return ERROR;
-	} catch (...) {return ERROR;}
-}*/
+		gManifoldPointIndex = gManifold->getNumContacts() - 1;
+	}
 
-export int zbtGetCollisionOfNum(int collisionObjectId) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co, collisionObjectId);
+	outObjA = (btCollisionObject*)gManifold->getBody0();
+	outObjB = (btCollisionObject*)gManifold->getBody1();
 
-	int ret = 0;
-	for(int i = gWorld->getDispatcher()->getNumManifolds()-1; i >= 0; --i) {
+	btManifoldPoint& pt = gManifold->getContactPoint(gManifoldPointIndex);
+
+	outPosA.set(pt.getPositionWorldOnA());
+	outPosB.set(pt.getPositionWorldOnB());
+	outNormal.set(pt.m_normalWorldOnB);
+
+	gManifoldPointIndex--;
+
+	return true;
+}
+
+EXPORT void zbtGetCollidedObjects(int contactIndex,
+	btCollisionObject* &outObjA, btCollisionObject* &outObjB) {
+
+	btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(contactIndex);
+
+	outObjA = (btCollisionObject*)pm->getBody0();
+	outObjB = (btCollisionObject*)pm->getBody1();
+}
+
+EXPORT bool zbtIsColliding(btCollisionObject* obj) {
+
+	for (int i = gWorld->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
 		btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(i);
 
-		if((btCollisionObject*)pm->getBody0() == co || (btCollisionObject*)pm->getBody1() == co) {
-			int j = pm->getNumContacts()-1;
-			for(;j>=0;--j) if(pm->validContactDistance(pm->getContactPoint(j))) break;
-			if(j>=0) ret++;
-		}
+		if ((btCollisionObject*)pm->getBody0() == obj || (btCollisionObject*)pm->getBody1() == obj)
+			return true;
 	}
+
+	return false;
+}
+
+EXPORT int zbtGetNumberOfCollisions(btCollisionObject* obj) {
+
+	int ret = 0;
+	for (int i = gWorld->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
+		btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(i);
+
+		if ((btCollisionObject*)pm->getBody0() == obj || (btCollisionObject*)pm->getBody1() == obj)
+			ret++;
+	}
+
 	return ret;
 }
 
-// REWORK !!!
-/*export int zbtGetCollisionOf(int collisionObjectId, int index)
-{
-	if(!gComputeCollisions || collisionObjectId < 0 || collisionObjectId >= int(gCollisionList.size()) ||
-		index < 0 || index >= int(gCollisionList[collisionObjectId].size())) return ERROR;
+EXPORT bool zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) {
 
-	return gCollisionList[collisionObjectId][index];
-}
-*/
-
-export int zbtIsCollidedWith(int collisionObjectId1, int collisionObjectId2) {
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co1, collisionObjectId1);
-	GET_ITEM_FROM_LIST(gCollisionObjectList, btCollisionObject*, co2, collisionObjectId2);
-
-	for(int i = gWorld->getDispatcher()->getNumManifolds()-1; i >= 0; --i) {
+	for (int i = gWorld->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
 		btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(i);
-		btCollisionObject* bo1 = (btCollisionObject*)pm->getBody0();
-		btCollisionObject* bo2 = (btCollisionObject*)pm->getBody1();
+		btCollisionObject* coA = (btCollisionObject*)pm->getBody0();
+		btCollisionObject* coB = (btCollisionObject*)pm->getBody1();
 
-		if((bo1 == co1 && bo2 == co2) || (bo2 == co1 && bo1 == co2)) {
-			int j = pm->getNumContacts()-1;
-			for(;j>=0;--j) if(pm->validContactDistance(pm->getContactPoint(j))) break;
-			if(j>=0) return TRUE;
-			else return FALSE;
+		if ((coA == objA && coB == objB) || (coA == objB && coB == objA)) {
+			int j = pm->getNumContacts() - 1;
+			for (; j >= 0; --j) if (pm->validContactDistance(pm->getContactPoint(j))) break;
+
+			if (j >= 0) return true;
+			else return false;
 		}
 	}
-	return FALSE;
+	return false;
 }
+
 
 // Raycasting
 
-// TODO Check code of raycasting with btDefaultVehicleRaycaster::castRay
-
-export int zbtRayTest(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {
-	IS_INITIALIZED;
+EXPORT btCollisionObject* zbtRayTest(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {
 
 	btCollisionWorld::ClosestRayResultCallback crrc(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ)); 
 	gWorld->rayTest(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ), crrc);
-	if(crrc.hasHit())
-		try {
-			int i = gCollisionObjectList.findLinearSearch((btRigidBody*)crrc.m_collisionObject);
+	if (crrc.hasHit()){
+		gRayTestHitPoint = crrc.m_hitPointWorld;
+		gRayTestHitNormal = crrc.m_hitNormalWorld;
 
-			if(i < gCollisionObjectList.size()) {
-				gRayTestHitPoint = crrc.m_hitPointWorld;
-				gRayTestHitNormal = crrc.m_hitNormalWorld;
-				return i;
-			}
-			else return ERROR;
-
-		} catch (...) {return ERROR;}
-	else
-		return ERROR;
+		return (btCollisionObject*) crrc.m_collisionObject;
+	} else
+		return NULL;
 }
 
-export int zbtGetRayTestHitPoint(float &x, float &y, float &z) {
-	IS_INITIALIZED;
-	x = gRayTestHitPoint.getX();
-	y = gRayTestHitPoint.getY();
-	z = gRayTestHitPoint.getZ();
-	return DONE;
+EXPORT void zbtGetRayTestHitPointXYZ(float &outX, float &outY, float &outZ) {
+	outX = gRayTestHitPoint.getX();
+	outY = gRayTestHitPoint.getY();
+	outZ = gRayTestHitPoint.getZ();
 }
 
-export int zbtGetRayTestHitNormal(float &x, float &y, float &z) {
-	IS_INITIALIZED;
-	x = gRayTestHitNormal.getX();
-	y = gRayTestHitNormal.getY();
-	z = gRayTestHitNormal.getZ();
-	return DONE;
+EXPORT void zbtGetRayTestHitPoint(v3 &outPosition) {
+	outPosition.set(gRayTestHitPoint);
+}
+
+EXPORT void zbtGetRayTestHitNormalXYZ(float &outX, float &outY, float &outZ) {
+	outX = gRayTestHitNormal.getX();
+	outY = gRayTestHitNormal.getY();
+	outZ = gRayTestHitNormal.getZ();
+}
+
+EXPORT void zbtGetRayTestHitNormal(v3 &outNormal) {
+	outNormal.set(gRayTestHitNormal);
 }

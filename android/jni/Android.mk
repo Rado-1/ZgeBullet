@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := ZgeBullet
 
-MY_BULLET_PATH := bullet-2.82-r2704/src
+MY_BULLET_PATH := bullet3-2.83.5/src
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(MY_BULLET_PATH)
 LOCAL_CPPFLAGS += -fexceptions -frtti
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -ldl -lm -lstdc++
@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCollisionDispatcher.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCollisionObject.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCollisionWorld.cpp\
+    $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCollisionWorldImporter.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCompoundCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btCompoundCompoundCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btConvex2dConvex2dAlgorithm.cpp\
@@ -41,6 +42,7 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btConvexPlaneCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btDefaultCollisionConfiguration.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btEmptyCollisionAlgorithm.cpp\
+    $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btGhostObject.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btHashedSimplePairCache.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btInternalEdgeUtility.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btManifoldResult.cpp\
@@ -50,7 +52,6 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btSphereTriangleCollisionAlgorithm.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btUnionFind.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/SphereTriangleDetector.cpp\
-    $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btBox2dShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btBoxShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btBvhTriangleMeshShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btCapsuleShape.cpp\
@@ -58,18 +59,13 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btCompoundShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConcaveShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConeShape.cpp\
-    $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConvex2dShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConvexHullShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConvexInternalShape.cpp\
-    $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConvexPointCloudShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConvexPolyhedron.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConvexShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btConvexTriangleMeshShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btCylinderShape.cpp\
-    $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btEmptyShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btHeightfieldTerrainShape.cpp\
-    $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btMinkowskiSumShape.cpp\
-    $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btMultimaterialTriangleMeshShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btMultiSphereShape.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btOptimizedBvh.cpp\
     $(MY_BULLET_PATH)/BulletCollision/CollisionShapes/btPolyhedralConvexShape.cpp\
@@ -109,12 +105,17 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletCollision/NarrowPhaseCollision/btRaycastCallback.cpp\
     $(MY_BULLET_PATH)/BulletCollision/NarrowPhaseCollision/btSubSimplexConvexCast.cpp\
     $(MY_BULLET_PATH)/BulletCollision/NarrowPhaseCollision/btVoronoiSimplexSolver.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/Character/btKinematicCharacterController.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btConeTwistConstraint.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btContactConstraint.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btFixedConstraint.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btGearConstraint.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btGeneric6DofConstraint.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btGeneric6DofSpring2Constraint.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btGeneric6DofSpringConstraint.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btHinge2Constraint.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btHingeConstraint.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btNNCGConstraintSolver.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btPoint2PointConstraint.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolver.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/ConstraintSolver/btSliderConstraint.cpp\
@@ -124,14 +125,17 @@ LOCAL_SRC_FILES := \
     $(MY_BULLET_PATH)/BulletDynamics/Dynamics/btDiscreteDynamicsWorld.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/Dynamics/btRigidBody.cpp\
     $(MY_BULLET_PATH)/BulletDynamics/Dynamics/btSimpleDynamicsWorld.cpp\
-    $(MY_BULLET_PATH)/BulletDynamics/Dynamics/Bullet-C-API.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/MLCPSolvers/btDantzigLCP.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/MLCPSolvers/btMLCPSolver.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btRaycastVehicle.cpp\
+    $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btWheelInfo.cpp\
     $(MY_BULLET_PATH)/LinearMath/btAlignedAllocator.cpp\
     $(MY_BULLET_PATH)/LinearMath/btConvexHull.cpp\
     $(MY_BULLET_PATH)/LinearMath/btConvexHullComputer.cpp\
     $(MY_BULLET_PATH)/LinearMath/btGeometryUtil.cpp\
+    $(MY_BULLET_PATH)/LinearMath/btPolarDecomposition.cpp\
     $(MY_BULLET_PATH)/LinearMath/btQuickprof.cpp\
-    $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btRaycastVehicle.cpp\
-    $(MY_BULLET_PATH)/BulletDynamics/Vehicle/btWheelInfo.cpp
-#    $(MY_BULLET_PATH)/BulletCollision/CollisionDispatch/btGhostObject.cpp
+    $(MY_BULLET_PATH)/LinearMath/btSerializer.cpp\
+    $(MY_BULLET_PATH)/LinearMath/btVector3.cpp
 
 include $(BUILD_SHARED_LIBRARY)
