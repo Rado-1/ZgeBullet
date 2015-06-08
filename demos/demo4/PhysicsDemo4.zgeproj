@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #4. Created by Rado1" Caption="Physics Demo 4" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="67.4337 0 43.043" CameraRotation="0 -0.1596 0" LightPosition="200 200 200" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo4">
+<ZApplication Name="App" Comment="ZgeBullet demo #4. Created by Rado1" Caption="Physics Demo 4" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="78.9047 0 13.1927" CameraRotation="0 -0.2236 0" LightPosition="200 200 200" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo4">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -686,7 +686,8 @@ IsOverlapping = FALSE;]]>
 GhostObject = zbtCreateGhostObject(GhostShape, 0,0,0, 0,0,0);
 
 // set physical properties
-zbtSetCollisionFlags(GhostObject, ZBT_CF_NO_CONTACT_RESPONSE);]]>
+zbtSetCollisionFlags(GhostObject,
+  ZBT_CF_NO_CONTACT_RESPONSE | ZBT_CF_KINEMATIC_OBJECT);]]>
               </Expression>
             </ZExpression>
           </OnSpawn>
