@@ -1,7 +1,7 @@
 /*
   Doxygen documentation to ZgeBullet Library - zgebullet.txt
   Copyright (c) 2012-2015 Radovan Cervenka
-  Version: 2.0 (2015-06-08)
+  Version: 2.1 (2015-06-??)
 */
 
 
@@ -170,12 +170,22 @@ Values used for @a flags parameter in zbtSetCollisionFlags() function.
 Functions used to manipulate and simulate physical world.
 @{
 
-@fn void zbtCreateWorld()
+@fn xptr zbtCreateWorld()
 @brief Create physics simulation world.
+@return pointer to created simulation world
 
-@fn void zbtDestroyWorld()
+@fn void zbtDestroyWorld(
+	xptr world)
 @brief Destroy physics simulation world together with all instantiated
-collision objects, constraints and collision shapes.
+	collision objects, constraints and collision shapes.
+@param pointer to simulation world
+
+@fn void zbtSetCurrentWorld(
+	xptr world)
+@brief Set the current simulation world. All other functions for creating and
+	deleting physics-aware objects will be executed in the context of this
+	simulation world.
+@param pointer to simulation world
 
 @fn void zbtSetWorldGravity(
 	float x, float y, float z)
@@ -981,6 +991,12 @@ in world.
 @param damping damping of spring
 @param equilibriumPoint spring equilibrium point
 
+@fn void zbtSetEnabled(
+	xptr constraint, int bEnabled)
+@brief Enables or disables constraint.
+@param constraint pointer to constraint
+@param bEnabled 0 - disable constraint; 1 - enable constraint
+
 @fn void zbtDeleteConstraint(
 	xptr constraint)
 @brief Delete constraint.
@@ -1445,11 +1461,17 @@ object gains energy with each bounce. Default value is 0.0.
 @param[out] outPosition pointer to vec3 set to the position of object in the
 	world space
 	
-@fn void zbtSetPosition(
+@fn void zbtSetPositionXYZ(
 	xptr obj, float x, float y, float z)
 @brief Set position of collision object.
 @param obj pointer to collision object
-@param x, y, z position of object
+@param x, y, z new position of object
+
+@fn void zbtSetPosition(
+	xptr obj, xptr position)
+@brief Set position of collision object.
+@param obj pointer to collision object
+@param position pointer to vec3 representing new position of object
 
 @fn void zbtGetRotationXYZ(
 	xptr obj, ref float outRx, ref float outRy, ref float outRz)
@@ -1463,11 +1485,17 @@ object gains energy with each bounce. Default value is 0.0.
 @param obj pointer to collision object
 @param[out] outRotation pointer to vec3 set to the rotation of object
 
-@fn void zbtSetRotation(
+@fn void zbtSetRotationXYZ(
 	xptr obj, float rx, float ry, float rz)
 @brief Set rotation of collision object.
 @param obj pointer to collision object
-@param rx, ry, rz rotation of object
+@param rx, ry, rz new rotation of object
+
+@fn void zbtSetRotation(
+	xptr obj, xptr rotation)
+@brief Set rotation of collision object.
+@param obj pointer to collision object
+@param rotation pointer to vec3 representing new rotation of object
 
 @fn void zbtGetPosRotXYZ(
 	xptr obj,
@@ -1486,6 +1514,22 @@ object gains energy with each bounce. Default value is 0.0.
 @param[out] outPosition pointer to vec3 set to the position of object in the
 	world space
 @param[out] outRotation pointer to vec3 set to the rotation of object
+
+@fn void zbtSetPosRotXYZ(
+	xptr obj,
+	float x, float y, float z,
+	float rx, float ry, float rz)
+@brief Set position and rotation of collision object.
+@param obj pointer to collision object
+@param x, y, z new position of object
+@param rx, ry, rz new rotation of object
+
+@fn void zbtSetPosRot(
+	xptr obj, xptr position, xptr rotation)
+@brief Set position and rotation of collision object.
+@param obj pointer to collision object
+@param position pointer to vec3 representing new position of object
+@param rotation pointer to vec3 representing new rotation of object
 
 @fn void zbtSetCollisionFlags(
 	xptr obj, int flags)

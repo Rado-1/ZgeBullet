@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #2. Created by Rado1" Caption="Physics Demo 2" ClearColor="0 0 0 1" AmbientLightColor="0.6353 0.6353 0.6353 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-15.0407 30 78.5734" CameraRotation="0.05 0.0301 0" LightPosition="0 0 0" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo2">
+<ZApplication Name="App" Comment="ZgeBullet demo #2. Created by Rado1" Caption="Physics Demo 2" ClearColor="0 0 0 1" AmbientLightColor="0.6353 0.6353 0.6353 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="77.9256 30 18.0997" CameraRotation="0.05 -0.2137 0" LightPosition="0 0 0" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="800" MouseVisible="255" NoSound="1" FileVersion="2" AndroidPackageName="com.rado1.PhysicsDemo2">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -11,11 +11,11 @@
   https://github.com/Rado-1/ZgeBullet
 
   Download Windows DLL and Android shared library from
-  http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/
+  https://github.com/Rado-1/ZgeBullet/releases
 
   Copyright (c) 2012-2015 Radovan Cervenka
 
-  Version: 2.0 (2015-06-08)
+  Version: 2.1 (2015-06-27)
 */
 
 
@@ -63,15 +63,19 @@ const int ZBT_CF_KINEMATIC_OBJECT= 2;
 const int ZBT_CF_NO_CONTACT_RESPONSE = 4;
 const int ZBT_CF_CUSTOM_MATERIAL_CALLBACK = 8;
 const int ZBT_CF_CHARACTER_OBJECT = 16;
-//const int ZBT_CF_DISABLE_VISUALIZE_OBJECT = 32;
 const int ZBT_CF_DISABLE_SPU_COLLISION_PROCESSING = 64;
 
 
 // Functions
 
-void zbtCreateWorld() {}
 
-void zbtDestroyWorld() {}
+// World
+
+xptr zbtCreateWorld() {}
+
+void zbtDestroyWorld(xptr world) {}
+
+void zbtSetCurrentWorld(xptr world) {}
 
 void zbtSetWorldGravity(float x, float y, float z) {}
 
@@ -293,6 +297,8 @@ void zbtSetGeneric6DofSpring(xptr spring,
 	int axis, int bEnableSpring, float stiffness, float damping,
 	float equilibriumPoint) {}
 
+void zbtSetEnabled(xptr constraint, int bEnabled) {}
+
 void zbtDeleteConstraint(xptr constraint) {}
 
 
@@ -427,20 +433,30 @@ void zbtGetPositionXYZ(xptr obj,
 
 void zbtGetPosition(xptr obj, xptr outPosition) {}
 
-void zbtSetPosition(xptr obj, float x, float y, float z) {}
+void zbtSetPositionXYZ(xptr obj, float x, float y, float z) {}
+
+void zbtSetPosition(xptr obj, xptr position) {}
 
 void zbtGetRotationXYZ(xptr obj,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetRotation(xptr obj, xptr outRotation) {}
 
-void zbtSetRotation(xptr obj, float rx, float ry, float rz) {}
+void zbtSetRotationXYZ(xptr obj, float rx, float ry, float rz) {}
+
+void zbtSetRotation(xptr obj, xptr rotation) {}
 
 void zbtGetPosRotXYZ(xptr obj,
 	ref float outX, ref float outY, ref float outZ,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetPosRot(xptr obj, xptr outPosition, xptr outRotation) {}
+
+void zbtSetPosRotXYZ(xptr obj,
+	float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+void zbtSetPosRot(xptr obj, xptr position, xptr rotation) {}
 
 void zbtSetCollisionFlags(xptr obj, int flags) {}
 
@@ -508,6 +524,8 @@ const float PIx2 = PI * 2.0;
 const float ROT90 = 0.25;
 
 // VARIABLES
+
+xptr World;
 xptr SphereShape;
 float[10,10] Terrain;
 float TerrainGenOffset;
@@ -520,7 +538,8 @@ int NumberOfSpheres;]]>
 setRandomSeed(getSystemTime());
 
 // init physical world
-zbtCreateWorld();
+World = zbtCreateWorld();
+zbtSetCurrentWorld(World);
 zbtSetWorldGravity(0, -10, 0);
 
 // create sphere collision shape
@@ -612,7 +631,7 @@ else if(touchGetCount() > 1) // more than 1 touch - remove spheres
     <RenderText Name="SphereCount" Text="0" X="0.78" Y="0.9" Scale="0.5" Align="1"/>
   </OnRender>
   <OnClose>
-    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld();"/>
+    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld(World);"/>
   </OnClose>
   <Lights>
     <Light Position="20 50 20" Color="1 1 0 1" SpotDirection="0 -1 0" SpotCutoff="0"/>
@@ -681,7 +700,7 @@ Terrain[floor((v.X+1)*4.9), floor((v.Y+1)*4.9)] = h;]]>
         <Group Comment="Bitmaps and Materials">
           <Children>
             <Material Name="ObjectMaterial" WireframeWidth="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1"/>
-            <Bitmap Name="TerrainBitmap" Filter="2">
+            <Bitmap Name="TerrainBitmap" Width="16" Height="16" Filter="2">
               <Producers>
                 <BitmapExpression UseBlankSource="1">
                   <Expression>
@@ -697,7 +716,7 @@ Pixel.B = Pixel.R;]]>
                 <MaterialTexture Texture="TerrainBitmap" TextureScale="100 100 1" TextureWrapMode="1" TexCoords="1"/>
               </Textures>
             </Material>
-            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+            <Bitmap Name="SkyBitmap" Width="16" Height="128" Filter="2">
               <Producers>
                 <BitmapFromFile Comment="Imported from sky.png" DataWidth="16" DataHeight="128">
                   <BitmapFile>
@@ -711,7 +730,7 @@ Pixel.B = Pixel.R;]]>
                 <MaterialTexture Texture="SkyBitmap" TextureScale="1 1 0" TextureY="0.1" TexCoords="1" Origin="0 0 0"/>
               </Textures>
             </Material>
-            <Bitmap Name="DigitsBitmap" Width="3" Height="0">
+            <Bitmap Name="DigitsBitmap" Width="128" Height="16">
               <Producers>
                 <BitmapFromFile Comment="Imported from Digits.bmp" Transparency="1" DataWidth="128" DataHeight="16">
                   <BitmapFile>

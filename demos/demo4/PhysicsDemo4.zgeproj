@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #4. Created by Rado1" Caption="Physics Demo 4" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="78.9047 0 13.1927" CameraRotation="0 -0.2236 0" LightPosition="200 200 200" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo4">
+<ZApplication Name="App" Comment="ZgeBullet demo #4. Created by Rado1" Caption="Physics Demo 4" ClearColor="0 0 0 1" AmbientLightColor="0.7529 0.7529 0.7529 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="69.708 0 39.2529" CameraRotation="0 -0.1684 0" LightPosition="200 200 200" ViewportRatio="3" CustomViewportRatio="1.6667" ClipFar="1000" MouseVisible="255" NoSound="1" FileVersion="2" AndroidPackageName="com.rado1.PhysicsDemo4">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -11,11 +11,11 @@
   https://github.com/Rado-1/ZgeBullet
 
   Download Windows DLL and Android shared library from
-  http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/
+  https://github.com/Rado-1/ZgeBullet/releases
 
   Copyright (c) 2012-2015 Radovan Cervenka
 
-  Version: 2.0 (2015-06-08)
+  Version: 2.1 (2015-06-27)
 */
 
 
@@ -63,15 +63,19 @@ const int ZBT_CF_KINEMATIC_OBJECT= 2;
 const int ZBT_CF_NO_CONTACT_RESPONSE = 4;
 const int ZBT_CF_CUSTOM_MATERIAL_CALLBACK = 8;
 const int ZBT_CF_CHARACTER_OBJECT = 16;
-//const int ZBT_CF_DISABLE_VISUALIZE_OBJECT = 32;
 const int ZBT_CF_DISABLE_SPU_COLLISION_PROCESSING = 64;
 
 
 // Functions
 
-void zbtCreateWorld() {}
 
-void zbtDestroyWorld() {}
+// World
+
+xptr zbtCreateWorld() {}
+
+void zbtDestroyWorld(xptr world) {}
+
+void zbtSetCurrentWorld(xptr world) {}
 
 void zbtSetWorldGravity(float x, float y, float z) {}
 
@@ -293,6 +297,8 @@ void zbtSetGeneric6DofSpring(xptr spring,
 	int axis, int bEnableSpring, float stiffness, float damping,
 	float equilibriumPoint) {}
 
+void zbtSetEnabled(xptr constraint, int bEnabled) {}
+
 void zbtDeleteConstraint(xptr constraint) {}
 
 
@@ -427,20 +433,30 @@ void zbtGetPositionXYZ(xptr obj,
 
 void zbtGetPosition(xptr obj, xptr outPosition) {}
 
-void zbtSetPosition(xptr obj, float x, float y, float z) {}
+void zbtSetPositionXYZ(xptr obj, float x, float y, float z) {}
+
+void zbtSetPosition(xptr obj, xptr position) {}
 
 void zbtGetRotationXYZ(xptr obj,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetRotation(xptr obj, xptr outRotation) {}
 
-void zbtSetRotation(xptr obj, float rx, float ry, float rz) {}
+void zbtSetRotationXYZ(xptr obj, float rx, float ry, float rz) {}
+
+void zbtSetRotation(xptr obj, xptr rotation) {}
 
 void zbtGetPosRotXYZ(xptr obj,
 	ref float outX, ref float outY, ref float outZ,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetPosRot(xptr obj, xptr outPosition, xptr outRotation) {}
+
+void zbtSetPosRotXYZ(xptr obj,
+	float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+void zbtSetPosRot(xptr obj, xptr position, xptr rotation) {}
 
 void zbtSetCollisionFlags(xptr obj, int flags) {}
 
@@ -508,6 +524,8 @@ const float PIx2 = PI * 2.0;
 const float ROT90 = 0.25;
 
 // VARIABLES
+
+xptr World;
 xptr BoxShape;
 xptr GhostShape;]]>
       </Source>
@@ -518,7 +536,8 @@ xptr GhostShape;]]>
 setRandomSeed(getSystemTime());
 
 // init physical world
-zbtCreateWorld();
+World = zbtCreateWorld();
+zbtSetCurrentWorld(World);
 zbtSetWorldGravity(0, -9.8, 0);
 
 // create collision shapes
@@ -561,7 +580,7 @@ App.CameraRotation.Y = t - ROT90;]]>
     <RenderText Comment="FPS" TextFloatRef="App.FpsCounter" X="-0.97" Y="0.9" Scale="0.5" Align="1"/>
   </OnRender>
   <OnClose>
-    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld();"/>
+    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld(World);"/>
   </OnClose>
   <Lights>
     <Light Position="20 50 20" Color="1 1 0 1" SpotDirection="0 -1 0" SpotCutoff="0"/>
@@ -582,7 +601,7 @@ App.CameraRotation.Y = t - ROT90;]]>
           <Children>
             <Material Name="ObjectMaterial" WireframeWidth="0" Shading="1" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1"/>
             <Material Name="GhostMaterial" WireframeWidth="0" Shading="1" Color="1 1 1 0.2" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" Blend="2" DrawBackFace="255"/>
-            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+            <Bitmap Name="SkyBitmap" Width="16" Height="128" Filter="2">
               <Producers>
                 <BitmapFromFile Comment="Imported from sky.png" DataWidth="16" DataHeight="128">
                   <BitmapFile>
@@ -596,7 +615,7 @@ App.CameraRotation.Y = t - ROT90;]]>
                 <MaterialTexture Texture="SkyBitmap" TextureScale="1 0.5 0" TextureY="0.5" TexCoords="1" Origin="0 0 0"/>
               </Textures>
             </Material>
-            <Bitmap Name="GridBitmap" Width="1" Height="1" Filter="1">
+            <Bitmap Name="GridBitmap" Width="32" Height="32" Filter="1">
               <Producers>
                 <BitmapExpression UseBlankSource="255" Expression="Pixel = x &gt; 0.96875 || y &gt; 0.96875 ? 1 : 0;"/>
               </Producers>
@@ -606,7 +625,7 @@ App.CameraRotation.Y = t - ROT90;]]>
                 <MaterialTexture Texture="GridBitmap" TextureScale="10 10 1" TextureX="0.5" TextureY="0.5" TextureWrapMode="1" TexCoords="1" Origin="0 0 0"/>
               </Textures>
             </Material>
-            <Bitmap Name="DigitsBitmap" Width="3" Height="0">
+            <Bitmap Name="DigitsBitmap" Width="128" Height="16">
               <Producers>
                 <BitmapFromFile Comment="Imported from Digits.bmp" Transparency="1" DataWidth="128" DataHeight="16">
                   <BitmapFile>
@@ -698,7 +717,7 @@ zbtSetCollisionFlags(GhostObject,
 float t = App.Time * 0.5;
 CurrentModel.Position.Y = sin(t + Shift) * 15;
 
-zbtSetPosition(GhostObject,
+zbtSetPositionXYZ(GhostObject,
   CurrentModel.Position.X,
   CurrentModel.Position.Y,
   CurrentModel.Position.Z);

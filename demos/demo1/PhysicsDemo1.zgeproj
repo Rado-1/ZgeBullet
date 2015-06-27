@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-17.179 10 57.4881" CameraRotation="0 0.0462 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo1">
+<ZApplication Name="App" Comment="ZgeBullet demo #1. Created by Rado1" Caption="Physics Demo 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="38.8761 10 45.7017" CameraRotation="0 0.8878 0" ViewportRatio="3" ClipFar="800" MouseVisible="255" NoSound="1" FileVersion="2" AndroidPackageName="com.rado1.PhysicsDemo1">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -11,11 +11,11 @@
   https://github.com/Rado-1/ZgeBullet
 
   Download Windows DLL and Android shared library from
-  http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/
+  https://github.com/Rado-1/ZgeBullet/releases
 
   Copyright (c) 2012-2015 Radovan Cervenka
 
-  Version: 2.0 (2015-06-08)
+  Version: 2.1 (2015-06-27)
 */
 
 
@@ -63,15 +63,19 @@ const int ZBT_CF_KINEMATIC_OBJECT= 2;
 const int ZBT_CF_NO_CONTACT_RESPONSE = 4;
 const int ZBT_CF_CUSTOM_MATERIAL_CALLBACK = 8;
 const int ZBT_CF_CHARACTER_OBJECT = 16;
-//const int ZBT_CF_DISABLE_VISUALIZE_OBJECT = 32;
 const int ZBT_CF_DISABLE_SPU_COLLISION_PROCESSING = 64;
 
 
 // Functions
 
-void zbtCreateWorld() {}
 
-void zbtDestroyWorld() {}
+// World
+
+xptr zbtCreateWorld() {}
+
+void zbtDestroyWorld(xptr world) {}
+
+void zbtSetCurrentWorld(xptr world) {}
 
 void zbtSetWorldGravity(float x, float y, float z) {}
 
@@ -293,6 +297,8 @@ void zbtSetGeneric6DofSpring(xptr spring,
 	int axis, int bEnableSpring, float stiffness, float damping,
 	float equilibriumPoint) {}
 
+void zbtSetEnabled(xptr constraint, int bEnabled) {}
+
 void zbtDeleteConstraint(xptr constraint) {}
 
 
@@ -427,20 +433,30 @@ void zbtGetPositionXYZ(xptr obj,
 
 void zbtGetPosition(xptr obj, xptr outPosition) {}
 
-void zbtSetPosition(xptr obj, float x, float y, float z) {}
+void zbtSetPositionXYZ(xptr obj, float x, float y, float z) {}
+
+void zbtSetPosition(xptr obj, xptr position) {}
 
 void zbtGetRotationXYZ(xptr obj,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetRotation(xptr obj, xptr outRotation) {}
 
-void zbtSetRotation(xptr obj, float rx, float ry, float rz) {}
+void zbtSetRotationXYZ(xptr obj, float rx, float ry, float rz) {}
+
+void zbtSetRotation(xptr obj, xptr rotation) {}
 
 void zbtGetPosRotXYZ(xptr obj,
 	ref float outX, ref float outY, ref float outZ,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetPosRot(xptr obj, xptr outPosition, xptr outRotation) {}
+
+void zbtSetPosRotXYZ(xptr obj,
+	float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+void zbtSetPosRot(xptr obj, xptr position, xptr rotation) {}
 
 void zbtSetCollisionFlags(xptr obj, int flags) {}
 
@@ -531,6 +547,7 @@ const int SCALABLE_SPHERE_SHAPE = 12;
 
 // VARIABLES
 
+xptr World;
 int Scene;
 int IsClicked;
 int WasClicked;
@@ -578,7 +595,8 @@ xptr createCollisionShape(int type){
 setRandomSeed(getSystemTime());
 
 // init physical world
-zbtCreateWorld();
+World = zbtCreateWorld();
+zbtSetCurrentWorld(World);
 zbtSetWorldGravity(0, -10, 0);
 
 // init collision shapes
@@ -589,10 +607,10 @@ for(int i = 0; i < NUMBER_OF_SHAPES; ++i)
 // worse performance for many objects
 //xptr sh = zbtCreateStaticPlaneShape(0,1,0,0);
 //xptr rb = zbtCreateRigidBodyXYZ(0, sh, 0, 0, 0, 0, 0, 0);
+
 // use the following instead:
 xptr sh = zbtCreateBoxShape(200,1,200);
 xptr rb = zbtCreateRigidBodyXYZ(0, sh, 0, -1, 0, 0, 0, 0);
-zbtSetFriction(rb, 1.0);
 
 // init scene
 Scene = -1;
@@ -680,7 +698,7 @@ switch(Scene){
 
     // set commmon properties
     ObjectType = DOMINO_SHAPE;
-    ObjectMass = 0.1;
+    ObjectMass = 0.5;
     ObjectActivationState = TRUE;
     ObjectLinearDamping = ObjectAngularDamping = 0;
     ObjectPosition = vector3(x, 2.1, z - 1.5);
@@ -794,7 +812,7 @@ switch(Scene){
     // main 2nd-level beams
     ObjectType = CUBE4_SHAPE;
     ObjectColor = vector3(1, 0.2, 1);
-    ObjectRotation.Y = ROT90;
+    ObjectRotation.X = ROT90;
     // 1st
     ObjectPosition = vector3(1, 7, 0);
     createModel(ObjectModel);
@@ -934,7 +952,7 @@ switch(Scene){
   case 3: // build tower
 
     ObjectType = CUBE1_SHAPE;
-    ObjectMass = 0.5;
+    ObjectMass = 0.1;
     ObjectActivationState = TRUE;
     ObjectLinearDamping = ObjectAngularDamping = DEFAULT_DAMPING;
     ObjectRotation.X = 0;
@@ -948,7 +966,7 @@ switch(Scene){
 
           ObjectPosition = vector3(
             cos(j*PIx2 + i*PI2) * 5,
-            i * 2.01 + 30,
+            i * 2.0 + 40,
             sin(j*PIx2 + i*PI2) * 5);
           ObjectRotation.Y = atan2(ObjectPosition.X, ObjectPosition.Z) / PIx2;
 
@@ -1002,7 +1020,7 @@ if(shooting){
     <RenderText Comment="FPS" TextFloatRef="App.FpsCounter" X="-0.97" Y="0.9" Scale="0.5" Align="1"/>
   </OnRender>
   <OnClose>
-    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld();"/>
+    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld(World);"/>
   </OnClose>
   <Lights>
     <Light Position="50 50 50" Color="1 1 0 1" Kind="1"/>
@@ -1052,45 +1070,14 @@ v.Y = v.Y < 0 ? -1 : 1;
 
 n.X = v.X;
 n.Y = v.Y;
-n.Z = v.Z;
-
-
-
-/*//
-
-        float E, A, C, X, Y, Z;
-
-        // Convert range to radians
-
-        E = v.Y*PI; // Elevation
-        A = v.X*PI; // Azimuth
-
-        // Convert spherical coordinates into cartesian
-
-        C = cos(E);
-
-        X = sin(A)*C;
-        Y = sin(E);
-        Z = cos(A)*C;
-
-        // Assign coordinates
-
-        v.X = X;
-        v.Y = Y;
-        v.Z = Z;
-        v.Y = v.Y > 0 ? 1 : -1;
-
-        n.X = X;
-        n.Y = Y;
-        n.Z = Z;
- */]]>
+n.Z = v.Z;]]>
                   </Expression>
                 </MeshExpression>
               </Producers>
             </Mesh>
             <Mesh Name="Cylinder2Mesh">
               <Producers>
-                <MeshBox Scale="1 0.5 1" XCount="18" YCount="2" Grid2DOnly="255"/>
+                <MeshBox Scale="1 0.5 1" XCount="10" YCount="2" Grid2DOnly="255"/>
                 <MeshExpression Scale="1 2 1" AutoNormals="0">
                   <Expression>
 <![CDATA[float k;
@@ -1107,38 +1094,7 @@ v.Y = v.Y < 0 ? -1 : 1;
 
 n.X = v.X;
 n.Y = v.Y;
-n.Z = v.Z;
-
-
-
-/*//
-
-        float E, A, C, X, Y, Z;
-
-        // Convert range to radians
-
-        E = v.Y*PI; // Elevation
-        A = v.X*PI; // Azimuth
-
-        // Convert spherical coordinates into cartesian
-
-        C = cos(E);
-
-        X = sin(A)*C;
-        Y = sin(E);
-        Z = cos(A)*C;
-
-        // Assign coordinates
-
-        v.X = X;
-        v.Y = Y;
-        v.Z = Z;
-        v.Y = v.Y > 0 ? 1 : -1;
-
-        n.X = X;
-        n.Y = Y;
-        n.Z = Z;
- */]]>
+n.Z = v.Z;]]>
                   </Expression>
                 </MeshExpression>
               </Producers>
@@ -1162,38 +1118,7 @@ v.Y = v.Y < 0 ? -1 : 1;
 
 n.X = v.X;
 n.Y = v.Y;
-n.Z = v.Z;
-
-
-
-/*//
-
-        float E, A, C, X, Y, Z;
-
-        // Convert range to radians
-
-        E = v.Y*PI; // Elevation
-        A = v.X*PI; // Azimuth
-
-        // Convert spherical coordinates into cartesian
-
-        C = cos(E);
-
-        X = sin(A)*C;
-        Y = sin(E);
-        Z = cos(A)*C;
-
-        // Assign coordinates
-
-        v.X = X;
-        v.Y = Y;
-        v.Z = Z;
-        v.Y = v.Y > 0 ? 1 : -1;
-
-        n.X = X;
-        n.Y = Y;
-        n.Z = Z;
- */]]>
+n.Z = v.Z;]]>
                   </Expression>
                 </MeshExpression>
               </Producers>
@@ -1217,38 +1142,7 @@ v.Y = v.Y < 0 ? -1 : 1;
 
 n.X = v.X;
 n.Y = v.Y;
-n.Z = v.Z;
-
-
-
-/*//
-
-        float E, A, C, X, Y, Z;
-
-        // Convert range to radians
-
-        E = v.Y*PI; // Elevation
-        A = v.X*PI; // Azimuth
-
-        // Convert spherical coordinates into cartesian
-
-        C = cos(E);
-
-        X = sin(A)*C;
-        Y = sin(E);
-        Z = cos(A)*C;
-
-        // Assign coordinates
-
-        v.X = X;
-        v.Y = Y;
-        v.Z = Z;
-        v.Y = v.Y > 0 ? 1 : -1;
-
-        n.X = X;
-        n.Y = Y;
-        n.Z = Z;
- */]]>
+n.Z = v.Z;]]>
                   </Expression>
                 </MeshExpression>
               </Producers>
@@ -1310,7 +1204,7 @@ n.Z = v.Z;
         <Group Comment="Bitmaps and Materials">
           <Children>
             <Material Name="ObjectMaterial" WireframeWidth="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" Blend="1"/>
-            <Bitmap Name="GroundBitmap">
+            <Bitmap Name="GroundBitmap" Width="16" Height="16">
               <Producers>
                 <BitmapExpression UseBlankSource="1" Expression="pixel = x &gt; 0.98 || y &gt; 0.98 ? 1 : 0;"/>
               </Producers>
@@ -1320,7 +1214,7 @@ n.Z = v.Z;
                 <MaterialTexture Texture="GroundBitmap" TextureScale="10 10 1" TextureWrapMode="1" TexCoords="1"/>
               </Textures>
             </Material>
-            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+            <Bitmap Name="SkyBitmap" Width="16" Height="128" Filter="2">
               <Producers>
                 <BitmapFromFile Comment="Imported from sky.png" DataWidth="16" DataHeight="128">
                   <BitmapFile>
@@ -1334,7 +1228,7 @@ n.Z = v.Z;
                 <MaterialTexture Texture="SkyBitmap" TextureScale="1 1 0" TextureY="0.05" TexCoords="1" Origin="0 0 0"/>
               </Textures>
             </Material>
-            <Bitmap Name="DigitsBitmap" Width="3" Height="0">
+            <Bitmap Name="DigitsBitmap" Width="128" Height="16">
               <Producers>
                 <BitmapFromFile Comment="Imported from Digits.bmp" Transparency="1" DataWidth="128" DataHeight="16">
                   <BitmapFile>

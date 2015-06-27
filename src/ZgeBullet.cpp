@@ -44,6 +44,13 @@ freely, subject to the following restrictions:
 #endif
 
 
+// Declarations of functions
+
+EXPORT void zbtDeleteRigidBody(btRigidBody*);
+EXPORT void zbtDeleteAllShapes();
+EXPORT void zbtDeleteGhostObject(btGhostObject*);
+
+
 // Types
 
 // Used for passing 3D vectors to public functions
@@ -59,42 +66,105 @@ struct v3{
 	}
 };
 
+// A single physical simulation world
+struct simulationWorld {
+
+	simulationWorld() :
+		createGhostPairCallback(true),
+		vehicleRaycaster(NULL),
+		manifoldIndex(-1),
+		manifoldPointIndex(-1),
+		rayTestHitPoint(btVector3(0, 0, 0)),
+		rayTestHitNormal(btVector3(0, 0, 0))
+	{
+		broadphase = new btDbvtBroadphase();
+		collisionConfiguration = new btDefaultCollisionConfiguration();
+		dispatcher = new btCollisionDispatcher(collisionConfiguration);
+		solver = new btSequentialImpulseConstraintSolver();
+		world = new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
+	}
+
+	~simulationWorld() {
+
+		// delete collision objects
+		btCollisionObjectArray colArray = world->getCollisionObjectArray();
+		for (int i = world->getNumCollisionObjects() - 1; i >= 0; --i){
+			btCollisionObject* obj = colArray[i];
+			if (obj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
+				zbtDeleteRigidBody(btRigidBody::upcast(obj));
+			else
+				//btCollisionObject::CO_GHOST_OBJECT
+				zbtDeleteGhostObject(btGhostObject::upcast(obj));
+		}
+
+		// delete remaining constraints
+		for (int i = world->getNumConstraints() - 1; i >= 0; --i){
+			btTypedConstraint* co = world->getConstraint(i);
+			world->removeConstraint(co);
+			delete co;
+		}
+
+		// destroy vehicle raycaster, if any
+		if (vehicleRaycaster) delete vehicleRaycaster;
+
+		// delete collision shapes
+		zbtDeleteAllShapes();
+
+		// delete related Bullet objects
+		delete world;
+		delete solver;
+		delete dispatcher;
+		delete collisionConfiguration;
+		delete broadphase;
+	}
+
+	btBroadphaseInterface* broadphase;
+	btDefaultCollisionConfiguration* collisionConfiguration;
+	btCollisionDispatcher* dispatcher;
+	btSequentialImpulseConstraintSolver* solver;
+	btDiscreteDynamicsWorld* world;
+
+	btVector3 rayTestHitPoint;
+	btVector3 rayTestHitNormal;
+
+	bool createGhostPairCallback;
+	btVehicleRaycaster* vehicleRaycaster;
+	btRaycastVehicle::btVehicleTuning tuning;
+
+	int manifoldIndex;
+	btPersistentManifold* manifold;
+	int manifoldPointIndex;
+
+	btAlignedObjectArray<btCollisionShape*> collisionShapeList;
+};
+
 
 // Macros
 
 #define ADD_COLLISION_SHAPE(shape) \
-	gCollisionShapeList.push_back(shape); \
+	gCurrentWorld->collisionShapeList.push_back(shape); \
 	return shape
 
 
 // Globals
 
 // Variables
-btBroadphaseInterface* gBroadphase;
-btDefaultCollisionConfiguration* gCollisionConfiguration;
-btCollisionDispatcher* gDispatcher;
-btSequentialImpulseConstraintSolver* gSolver;
-btDiscreteDynamicsWorld* gWorld;
 
-btVector3 gRayTestHitPoint;
-btVector3 gRayTestHitNormal;
-
-bool gCreateGhostPairCallback = true;
-btVehicleRaycaster* gVehicleRaycaster = NULL;
-btRaycastVehicle::btVehicleTuning gTuning;
-
-int gManifoldIndex = -1;
-btPersistentManifold* gManifold;
-int gManifoldPointIndex = -1;
-
-btAlignedObjectArray<btCollisionShape*> gCollisionShapeList;
-
+//btAlignedObjectArray<simulationWorld*> gCurrentWorld->worlds;
+simulationWorld* gCurrentWorld = NULL;
 
 // Utilities
 
+// Returns quaternion from Euler angles
+inline btQuaternion rot(float rx, float ry, float rz) {
+	btQuaternion q = btQuaternion();
+	q.setEulerZYX(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI);
+	return q;
+}
+
 // Creates btTransform from position and rotation given by Euler angles
 inline btTransform transform(float x, float y, float z, float rx, float ry, float rz) {
-	return btTransform(btQuaternion(ry*SIMD_2_PI, rx*SIMD_2_PI, rz*SIMD_2_PI), btVector3(x, y, z));
+	return btTransform(rot(rx, ry, rz), btVector3(x, y, z));
 }
 
 inline void checkWheel(btRaycastVehicle* vehicle, int wheelId) {
@@ -102,68 +172,28 @@ inline void checkWheel(btRaycastVehicle* vehicle, int wheelId) {
 }
 
 
-// Declarations of functions
-
-EXPORT void zbtDeleteRigidBody(btRigidBody*);
-EXPORT void zbtDeleteAllShapes();
-EXPORT void zbtDeleteGhostObject(btGhostObject*);
-
-
 // Public API
 
 // World
 
-EXPORT void zbtCreateWorld() {
-
-	gBroadphase = new btDbvtBroadphase();
-	gCollisionConfiguration = new btDefaultCollisionConfiguration();
-	gDispatcher = new btCollisionDispatcher(gCollisionConfiguration);
-	gSolver = new btSequentialImpulseConstraintSolver();
-	gWorld = new btDiscreteDynamicsWorld(gDispatcher, gBroadphase, gSolver, gCollisionConfiguration);
-
-	gRayTestHitPoint = btVector3(0, 0, 0);
-	gRayTestHitNormal = btVector3(0, 0, 0);
+EXPORT simulationWorld* zbtCreateWorld() {
+	return new simulationWorld();
 }
 
-EXPORT void zbtDestroyWorld() {
+EXPORT void zbtDestroyWorld(simulationWorld* world) {
+	delete world;
+}
 
-	// delete collision objects
-	btCollisionObjectArray colArray = gWorld->getCollisionObjectArray();
-	for(int i = gWorld->getNumCollisionObjects() - 1; i >= 0; --i){
-		btCollisionObject* obj = colArray[i];
-		if (obj->getInternalType() == btCollisionObject::CO_RIGID_BODY)
-			zbtDeleteRigidBody(btRigidBody::upcast(obj));
-		else
-			//btCollisionObject::CO_GHOST_OBJECT
-			zbtDeleteGhostObject(btGhostObject::upcast(obj));
-	}
-
-	// delete remaining constraints
-	for (int i = gWorld->getNumConstraints() - 1; i >= 0; --i){
-		btTypedConstraint* co = gWorld->getConstraint(i);
-		gWorld->removeConstraint(co);
-		delete co;
-	}
-
-	// destroy vehicle raycaster, if any
-	if(gVehicleRaycaster) delete gVehicleRaycaster;
-
-	// delete collision shapes
-	zbtDeleteAllShapes();
-
-	delete gWorld;
-    delete gSolver;	
-    delete gDispatcher;
-    delete gCollisionConfiguration;
-    delete gBroadphase;
+EXPORT void zbtSetCurrentWorld(simulationWorld* world) {
+	gCurrentWorld = world;
 }
 
 EXPORT void zbtSetWorldGravity(float x, float y, float z) {
-	gWorld->setGravity(btVector3(x, y, z));
+	gCurrentWorld->world->setGravity(btVector3(x, y, z));
 }
 
 EXPORT void zbtStepSimulation(float timeStep, int maxSubSteps, float fixedTimeStep) {
-	gWorld->stepSimulation(timeStep, maxSubSteps, fixedTimeStep);
+	gCurrentWorld->world->stepSimulation(timeStep, maxSubSteps, fixedTimeStep);
 }
 
 
@@ -304,11 +334,11 @@ EXPORT void zbtDeleteShape(btCollisionShape* shape) {
 }
 
 EXPORT void zbtDeleteAllShapes() {
-	for (int i = gCollisionShapeList.size() - 1; i >= 0; --i)
-		delete gCollisionShapeList[i];
-	//gCollisionShapeList.resize(0);
+	for (int i = gCurrentWorld->collisionShapeList.size() - 1; i >= 0; --i)
+		delete gCurrentWorld->collisionShapeList[i];
+	//gCurrentWorld->collisionShapeList.resize(0);
 
-	gCollisionShapeList.clear();
+	gCurrentWorld->collisionShapeList.clear();
 }
 
 
@@ -324,7 +354,7 @@ EXPORT btRigidBody* zbtCreateRigidBodyXYZ(float mass, btCollisionShape* shape, f
 
 	btRigidBody::btRigidBodyConstructionInfo rigidBodyCI(mass, motionState, shape, inertia);
 	btRigidBody* rigidBody = new btRigidBody(rigidBodyCI);
-	gWorld->addRigidBody(rigidBody);
+	gCurrentWorld->world->addRigidBody(rigidBody);
 
 	return rigidBody;
 }
@@ -340,7 +370,7 @@ EXPORT void zbtDeleteRigidBody(btRigidBody* rigidBody) {
 	while (rigidBody->getNumConstraintRefs()) {
 		btTypedConstraint* tc = rigidBody->getConstraintRef(0);
 
-		gWorld->removeConstraint(tc);
+		gCurrentWorld->world->removeConstraint(tc);
 		delete tc;
 	}
 
@@ -348,7 +378,7 @@ EXPORT void zbtDeleteRigidBody(btRigidBody* rigidBody) {
 	delete rigidBody->getMotionState();
 
 	// remove body
-	gWorld->removeRigidBody(rigidBody);
+	gCurrentWorld->world->removeRigidBody(rigidBody);
 	delete rigidBody;
 }
 
@@ -435,7 +465,7 @@ EXPORT btTypedConstraint* zbtAddFixedConstraint(btRigidBody* rigidBodyA, btRigid
 	btTypedConstraint* tc = new btFixedConstraint(*rigidBodyA, *rigidBodyB,
 		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
 		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz));
-	gWorld->addConstraint(tc, bDisableCollision);
+	gCurrentWorld->world->addConstraint(tc, bDisableCollision);
 
 	return tc;
 }
@@ -444,7 +474,7 @@ EXPORT btTypedConstraint* zbtAddPoint2PointConstraint1(btRigidBody* rigidBody,
 	float pivotX, float pivotY, float pivotZ) {
 
 	btTypedConstraint* tc = new btPoint2PointConstraint(*rigidBody, btVector3(pivotX, pivotY, pivotZ));
-	gWorld->addConstraint(tc, true);
+	gCurrentWorld->world->addConstraint(tc, true);
 
 	return tc;
 }
@@ -455,7 +485,7 @@ EXPORT btTypedConstraint* zbtAddPoint2PointConstraint(btRigidBody* rigidBodyA, b
 
 	btTypedConstraint* tc = new btPoint2PointConstraint(*rigidBodyA, *rigidBodyB,
 		btVector3(pivotAx, pivotAy, pivotAz), btVector3(pivotBx, pivotBy, pivotBz));
-	gWorld->addConstraint(tc, bDisableCollision);
+	gCurrentWorld->world->addConstraint(tc, bDisableCollision);
 
 	return tc;
 }
@@ -466,7 +496,7 @@ EXPORT btTypedConstraint* zbtAddHingeConstraint1(btRigidBody* rigidBody,
 
 	btTypedConstraint* tc = new btHingeConstraint(*rigidBody,
 		btVector3(pivotX, pivotY, pivotZ), btVector3(axisX, axisY, axisZ));
-	gWorld->addConstraint(tc, true);
+	gCurrentWorld->world->addConstraint(tc, true);
 
 	return tc;
 }
@@ -480,7 +510,7 @@ EXPORT btTypedConstraint* zbtAddHingeConstraint(btRigidBody* rigidBodyA, btRigid
 	btTypedConstraint* tc = new btHingeConstraint(*rigidBodyA, *rigidBodyB,
 		btVector3(pivotAx, pivotAy, pivotAz), btVector3(pivotBx, pivotBy, pivotBz),
 		btVector3(axisAx, axisAy, axisAz), btVector3(axisBx, axisBy, axisBz));
-	gWorld->addConstraint(tc, bDisableCollision);
+	gCurrentWorld->world->addConstraint(tc, bDisableCollision);
 
 	return tc;
 }
@@ -501,7 +531,7 @@ EXPORT btTypedConstraint* zbtAddConeTwistConstraint1(btRigidBody* rigidBody,
 
 	btTypedConstraint* tc = new btConeTwistConstraint(*rigidBody,
 		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ));
-	gWorld->addConstraint(tc, true);
+	gCurrentWorld->world->addConstraint(tc, true);
 
 	return tc;
 }
@@ -515,7 +545,7 @@ EXPORT btTypedConstraint* zbtAddConeTwistConstraint(btRigidBody* rigidBodyA, btR
 	btTypedConstraint* tc = new btConeTwistConstraint(*rigidBodyA, *rigidBodyB,
 		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
 		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz));
-	gWorld->addConstraint(tc, bDisableCollision);
+	gCurrentWorld->world->addConstraint(tc, bDisableCollision);
 
 	return tc;
 }
@@ -546,7 +576,7 @@ EXPORT btTypedConstraint* zbtAddSliderConstraint1(btRigidBody* rigidBody,
 	btTypedConstraint* tc = new btSliderConstraint(*rigidBody,
 		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ),
 		bUseLinearReferenceWorldFrame);
-	gWorld->addConstraint(tc, true);
+	gCurrentWorld->world->addConstraint(tc, true);
 
 	return tc;
 }
@@ -561,7 +591,7 @@ EXPORT btTypedConstraint* zbtAddSliderConstraint(btRigidBody* rigidBodyA, btRigi
 		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
 		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz),
 		bUseLinearReferenceFrameA);
-	gWorld->addConstraint(tc, bDisableCollision);
+	gCurrentWorld->world->addConstraint(tc, bDisableCollision);
 
 	return tc;
 }
@@ -638,7 +668,7 @@ EXPORT btTypedConstraint* zbtAddGearConstraint(btRigidBody* rigidBodyA, btRigidB
 	btTypedConstraint* tc = new btGearConstraint(*rigidBodyA, *rigidBodyB,
 		btVector3(axisAx, axisAy, axisAz), btVector3(axisBx, axisBy, axisBz),
 		ratio);
-	gWorld->addConstraint(tc, true);
+	gCurrentWorld->world->addConstraint(tc, true);
 
 	return tc;
 }
@@ -663,7 +693,7 @@ EXPORT btTypedConstraint* zbtAddGeneric6DofConstraint1(btRigidBody* rigidBody,
 	btTypedConstraint* tc = new btGeneric6DofConstraint(*rigidBody,
 		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ),
 		bUseLinearReferenceWorldFrame);
-	gWorld->addConstraint(tc, false);
+	gCurrentWorld->world->addConstraint(tc, false);
 
 	return tc;
 }
@@ -678,7 +708,7 @@ EXPORT btTypedConstraint* zbtAddGeneric6DofConstraint(btRigidBody* rigidBodyA, b
 		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
 		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz),
 		bUseLinearReferenceFrameA);
-	gWorld->addConstraint(tc, bDisableCollision );
+	gCurrentWorld->world->addConstraint(tc, bDisableCollision );
 
 	return tc;
 }
@@ -716,7 +746,7 @@ EXPORT btTypedConstraint* zbtAddGeneric6DofSpringConstraint1(btRigidBody* rigidB
 	btTypedConstraint* tc = new btGeneric6DofSpringConstraint(*rigidBody,
 		transform(pivotX, pivotY, pivotZ, rotX, rotY, rotZ),
 		bUseLinearReferenceWorldFrame);
-	gWorld->addConstraint(tc, false);
+	gCurrentWorld->world->addConstraint(tc, false);
 
 	return tc;
 }
@@ -731,7 +761,7 @@ EXPORT btTypedConstraint* zbtAddGeneric6DofSpringConstraint(btRigidBody* rigidBo
 		transform(pivotAx, pivotAy, pivotAz, rotAx, rotAy, rotAz),
 		transform(pivotBx, pivotBy, pivotBz, rotBx, rotBy, rotBz),
 		bUseLinearReferenceFrameA);
-	gWorld->addConstraint(tc, bDisableCollision);
+	gCurrentWorld->world->addConstraint(tc, bDisableCollision);
 
 	return tc;
 }
@@ -752,8 +782,12 @@ EXPORT void zbtSetGeneric6DofSpring(btGeneric6DofSpringConstraint* spring,
 	}
 }
 
+EXPORT void zbtSetEnabled(btTypedConstraint* constraint, bool bEnabled) {
+	constraint->setEnabled(bEnabled);
+}
+
 EXPORT void zbtDeleteConstraint(btTypedConstraint* constraint) {
-	gWorld->removeConstraint(constraint);
+	gCurrentWorld->world->removeConstraint(constraint);
 	delete constraint;
 }
 
@@ -764,21 +798,21 @@ EXPORT void zbtSetVehicleTunning(float suspStiffness, float suspCompression,
 	float suspDamping, float maxSuspTravelCm, float maxSuspForce,
 	float frictionSlip) {
 
-	gTuning.m_suspensionStiffness = suspStiffness;
-	gTuning.m_suspensionCompression = suspCompression;
-	gTuning.m_suspensionDamping = suspDamping;
-	gTuning.m_maxSuspensionTravelCm = maxSuspTravelCm;
-	gTuning.m_frictionSlip = frictionSlip;
-	gTuning.m_maxSuspensionForce = maxSuspForce;
+	gCurrentWorld->tuning.m_suspensionStiffness = suspStiffness;
+	gCurrentWorld->tuning.m_suspensionCompression = suspCompression;
+	gCurrentWorld->tuning.m_suspensionDamping = suspDamping;
+	gCurrentWorld->tuning.m_maxSuspensionTravelCm = maxSuspTravelCm;
+	gCurrentWorld->tuning.m_frictionSlip = frictionSlip;
+	gCurrentWorld->tuning.m_maxSuspensionForce = maxSuspForce;
 }
 
 EXPORT btRaycastVehicle* zbtCreateRaycastVehicle(btRigidBody* carChassis,
 	int rightAxis, int upAxis, int forwardAxis) {
 
-	if(!gVehicleRaycaster) gVehicleRaycaster = new btDefaultVehicleRaycaster(gWorld);
-	btRaycastVehicle* rv = new btRaycastVehicle(gTuning, carChassis, gVehicleRaycaster);
+	if(!gCurrentWorld->vehicleRaycaster) gCurrentWorld->vehicleRaycaster = new btDefaultVehicleRaycaster(gCurrentWorld->world);
+	btRaycastVehicle* rv = new btRaycastVehicle(gCurrentWorld->tuning, carChassis, gCurrentWorld->vehicleRaycaster);
 	rv->setCoordinateSystem(rightAxis, upAxis, forwardAxis);
-	gWorld->addVehicle(rv);
+	gCurrentWorld->world->addVehicle(rv);
 	carChassis->setActivationState(DISABLE_DEACTIVATION); //necessary
 
 	return rv;
@@ -792,7 +826,7 @@ EXPORT int zbtAddWheel(btRaycastVehicle* vehicle,
 
 	btWheelInfo wi = vehicle->addWheel(btVector3(connectionPointX, connectionPointY, connectionPointZ),
 		btVector3(directionX, directionY, directionZ), btVector3(wheelAxleX, wheelAxleY, wheelAxleZ),
-		suspRestLength, wheelRadius, gTuning, bIsFrontWheel);
+		suspRestLength, wheelRadius, gCurrentWorld->tuning, bIsFrontWheel);
 
 	return vehicle->getNumWheels() - 1;
 }
@@ -909,7 +943,7 @@ EXPORT void zbtGetWheelPosRot(btRaycastVehicle* vehicle, int wheelId,
 
 // must be called before zbtDestroyWorld explicitly
 EXPORT void zbtDeleteRaycastVehicle(btRaycastVehicle* vehicle) {
-	gWorld->removeVehicle(vehicle);
+	gCurrentWorld->world->removeVehicle(vehicle);
 	delete vehicle;
 }
 
@@ -922,18 +956,18 @@ EXPORT btCollisionObject* zbtCreateGhostObject(btCollisionShape* shape,
 	btGhostObject* ghostObject = new btPairCachingGhostObject();
 	ghostObject->setCollisionShape(shape);
 	ghostObject->setWorldTransform(transform(x, y, z, rx, ry, rz));
-	if (gCreateGhostPairCallback){
-		//gWorld->getPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
-		gBroadphase->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
-		gCreateGhostPairCallback = false;
+	if (gCurrentWorld->createGhostPairCallback){
+		//gCurrentWorld->world->getPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+		gCurrentWorld->broadphase->getOverlappingPairCache()->setInternalGhostPairCallback(new btGhostPairCallback());
+		gCurrentWorld->createGhostPairCallback = false;
 	}
-	gWorld->addCollisionObject(ghostObject);
+	gCurrentWorld->world->addCollisionObject(ghostObject);
 
 	return ghostObject;
 }
 
 EXPORT void zbtDeleteGhostObject(btGhostObject* ghostObject) {
-	gWorld->removeCollisionObject(ghostObject);
+	gCurrentWorld->world->removeCollisionObject(ghostObject);
 	delete ghostObject;
 }
 
@@ -954,13 +988,13 @@ EXPORT btKinematicCharacterController* zbtCreateKinematicCharacterController(
 	ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 	btKinematicCharacterController* controller = new btKinematicCharacterController(ghostObject,
 		(btConvexShape*)ghostObject->getCollisionShape(), stepHeight);
-	gWorld->addAction(controller);
+	gCurrentWorld->world->addAction(controller);
 
 	return controller;
 }
 
 EXPORT void zbtDeleteKinematicCharacterController(btKinematicCharacterController* controller) {
-	gWorld->removeAction(controller);
+	gCurrentWorld->world->removeAction(controller);
 	delete controller;
 }
 
@@ -1039,7 +1073,7 @@ EXPORT bool zbtCharacterOnGround(btKinematicCharacterController* controller) {
 
 EXPORT void zbtCharacterReset(btKinematicCharacterController* controller) {
 
-	controller->reset(gWorld);
+	controller->reset(gCurrentWorld->world);
 }
 
 EXPORT void zbtSetCharacterUpInterpolate(btKinematicCharacterController* controller,
@@ -1076,10 +1110,14 @@ EXPORT void zbtGetPosition(btCollisionObject* obj, v3 &outPosition) {
 	zbtGetPositionXYZ(obj, outPosition.x, outPosition.y, outPosition.z);
 }
 
-EXPORT void zbtSetPosition(btCollisionObject* obj, float x, float y, float z) {
+EXPORT void zbtSetPositionXYZ(btCollisionObject* obj, float x, float y, float z) {
 	btTransform trans = obj->getWorldTransform();
 	trans.setOrigin(btVector3(x, y, z));
 	obj->setWorldTransform(trans);
+}
+
+EXPORT void zbtSetPosition(btCollisionObject* obj, v3 &position) {
+	zbtSetPositionXYZ(obj, position.x, position.y, position.z);
 }
 
 EXPORT void zbtGetRotationXYZ(btCollisionObject* obj,
@@ -1095,10 +1133,14 @@ EXPORT void zbtGetRotation(btCollisionObject* obj, v3 &outRotation) {
 	zbtGetRotationXYZ(obj, outRotation.x, outRotation.y, outRotation.z);
 }
 
-EXPORT void zbtSetRotation(btCollisionObject* obj, float rx, float ry, float rz) {
+EXPORT void zbtSetRotationXYZ(btCollisionObject* obj, float rx, float ry, float rz) {
 	btTransform trans = obj->getWorldTransform();
-	trans.setRotation(btQuaternion(ry*SIMD_2_PI, rx*SIMD_2_PI, rz*SIMD_2_PI));
+	trans.setRotation(rot(rx, ry, rz));
 	obj->setWorldTransform(trans);
+}
+
+EXPORT void zbtSetRotation(btCollisionObject* obj, v3 &rotation) {
+	zbtSetRotationXYZ(obj, rotation.x, rotation.y, rotation.z);
 }
 
 EXPORT void zbtGetPosRotXYZ(btCollisionObject* obj,
@@ -1113,6 +1155,19 @@ EXPORT void zbtGetPosRot(btCollisionObject* obj, v3 &outPosition, v3 &outRotatio
 
 	zbtGetPositionXYZ(obj, outPosition.x, outPosition.y, outPosition.z);
 	zbtGetRotationXYZ(obj, outRotation.x, outRotation.y, outRotation.z);
+}
+
+EXPORT void zbtSetPosRotXYZ(btCollisionObject* obj,
+	float x, float y, float z, float rx, float ry, float rz) {
+
+	obj->setWorldTransform(transform(x, y, z, rx, ry, rz));
+}
+
+EXPORT void zbtSetPosRot(btCollisionObject* obj,
+	v3 &position, v3 &rotation) {
+
+	zbtSetPosRotXYZ(obj, position.x, position.y, position.z,
+		rotation.x, rotation.y, rotation.z);
 }
 
 EXPORT void zbtSetCollisionFlags(btCollisionObject* obj, int flags) {
@@ -1165,34 +1220,34 @@ EXPORT void zbtSetIgnoreCollisionCheck(btCollisionObject* objA, btCollisionObjec
 }
 
 EXPORT int zbtStartCollisionDetection() {
-	gManifoldIndex = gWorld->getDispatcher()->getNumManifolds();
-	gManifoldPointIndex = -1;
+	gCurrentWorld->manifoldIndex = gCurrentWorld->world->getDispatcher()->getNumManifolds();
+	gCurrentWorld->manifoldPointIndex = -1;
 
-	return gManifoldIndex;
+	return gCurrentWorld->manifoldIndex;
 }
 
 EXPORT bool zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &outObjB,
 	v3 &outPosA, v3 &outPosB, v3 &outNormal) {
 
-	if (gManifoldPointIndex < 0){
+	if (gCurrentWorld->manifoldPointIndex < 0){
 
-		if (gManifoldIndex == 0) return false;
-		gManifoldIndex--;
-		gManifold = gWorld->getDispatcher()->getManifoldByIndexInternal(gManifoldIndex);
+		if (gCurrentWorld->manifoldIndex == 0) return false;
+		gCurrentWorld->manifoldIndex--;
+		gCurrentWorld->manifold = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(gCurrentWorld->manifoldIndex);
 
-		gManifoldPointIndex = gManifold->getNumContacts() - 1;
+		gCurrentWorld->manifoldPointIndex = gCurrentWorld->manifold->getNumContacts() - 1;
 	}
 
-	outObjA = (btCollisionObject*)gManifold->getBody0();
-	outObjB = (btCollisionObject*)gManifold->getBody1();
+	outObjA = (btCollisionObject*)gCurrentWorld->manifold->getBody0();
+	outObjB = (btCollisionObject*)gCurrentWorld->manifold->getBody1();
 
-	btManifoldPoint& pt = gManifold->getContactPoint(gManifoldPointIndex);
+	btManifoldPoint& pt = gCurrentWorld->manifold->getContactPoint(gCurrentWorld->manifoldPointIndex);
 
 	outPosA.set(pt.getPositionWorldOnA());
 	outPosB.set(pt.getPositionWorldOnB());
 	outNormal.set(pt.m_normalWorldOnB);
 
-	gManifoldPointIndex--;
+	gCurrentWorld->manifoldPointIndex--;
 
 	return true;
 }
@@ -1200,7 +1255,7 @@ EXPORT bool zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &o
 EXPORT void zbtGetCollidedObjects(int contactIndex,
 	btCollisionObject* &outObjA, btCollisionObject* &outObjB) {
 
-	btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(contactIndex);
+	btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(contactIndex);
 
 	outObjA = (btCollisionObject*)pm->getBody0();
 	outObjB = (btCollisionObject*)pm->getBody1();
@@ -1208,8 +1263,8 @@ EXPORT void zbtGetCollidedObjects(int contactIndex,
 
 EXPORT bool zbtIsColliding(btCollisionObject* obj) {
 
-	for (int i = gWorld->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
-		btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(i);
+	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
+		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
 
 		if ((btCollisionObject*)pm->getBody0() == obj || (btCollisionObject*)pm->getBody1() == obj)
 			return true;
@@ -1221,8 +1276,8 @@ EXPORT bool zbtIsColliding(btCollisionObject* obj) {
 EXPORT int zbtGetNumberOfCollisions(btCollisionObject* obj) {
 
 	int ret = 0;
-	for (int i = gWorld->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
-		btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(i);
+	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
+		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
 
 		if ((btCollisionObject*)pm->getBody0() == obj || (btCollisionObject*)pm->getBody1() == obj)
 			ret++;
@@ -1233,8 +1288,8 @@ EXPORT int zbtGetNumberOfCollisions(btCollisionObject* obj) {
 
 EXPORT bool zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) {
 
-	for (int i = gWorld->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
-		btPersistentManifold* pm = gWorld->getDispatcher()->getManifoldByIndexInternal(i);
+	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
+		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
 		btCollisionObject* coA = (btCollisionObject*)pm->getBody0();
 		btCollisionObject* coB = (btCollisionObject*)pm->getBody1();
 
@@ -1255,10 +1310,10 @@ EXPORT bool zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) 
 EXPORT btCollisionObject* zbtRayTest(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {
 
 	btCollisionWorld::ClosestRayResultCallback crrc(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ)); 
-	gWorld->rayTest(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ), crrc);
+	gCurrentWorld->world->rayTest(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ), crrc);
 	if (crrc.hasHit()){
-		gRayTestHitPoint = crrc.m_hitPointWorld;
-		gRayTestHitNormal = crrc.m_hitNormalWorld;
+		gCurrentWorld->rayTestHitPoint = crrc.m_hitPointWorld;
+		gCurrentWorld->rayTestHitNormal = crrc.m_hitNormalWorld;
 
 		return (btCollisionObject*) crrc.m_collisionObject;
 	} else
@@ -1266,21 +1321,21 @@ EXPORT btCollisionObject* zbtRayTest(float fromX, float fromY, float fromZ, floa
 }
 
 EXPORT void zbtGetRayTestHitPointXYZ(float &outX, float &outY, float &outZ) {
-	outX = gRayTestHitPoint.getX();
-	outY = gRayTestHitPoint.getY();
-	outZ = gRayTestHitPoint.getZ();
+	outX = gCurrentWorld->rayTestHitPoint.getX();
+	outY = gCurrentWorld->rayTestHitPoint.getY();
+	outZ = gCurrentWorld->rayTestHitPoint.getZ();
 }
 
 EXPORT void zbtGetRayTestHitPoint(v3 &outPosition) {
-	outPosition.set(gRayTestHitPoint);
+	outPosition.set(gCurrentWorld->rayTestHitPoint);
 }
 
 EXPORT void zbtGetRayTestHitNormalXYZ(float &outX, float &outY, float &outZ) {
-	outX = gRayTestHitNormal.getX();
-	outY = gRayTestHitNormal.getY();
-	outZ = gRayTestHitNormal.getZ();
+	outX = gCurrentWorld->rayTestHitNormal.getX();
+	outY = gCurrentWorld->rayTestHitNormal.getY();
+	outZ = gCurrentWorld->rayTestHitNormal.getZ();
 }
 
 EXPORT void zbtGetRayTestHitNormal(v3 &outNormal) {
-	outNormal.set(gRayTestHitNormal);
+	outNormal.set(gCurrentWorld->rayTestHitNormal);
 }

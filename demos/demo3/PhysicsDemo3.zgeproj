@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #3. Created by Rado1" Caption="Physics Demo 3" AmbientLightColor="0.502 0.502 0.502 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-3.7244 8.3467 -28.8006" CameraRotation="0.06 0.5 0" LightPosition="0 30 0" ViewportRatio="3" ClipFar="1000" MouseVisible="255" NoSound="1" AndroidPackageName="com.rado1.PhysicsDemo3">
+<ZApplication Name="App" Comment="ZgeBullet demo #3. Created by Rado1" Caption="Physics Demo 3" AmbientLightColor="0.502 0.502 0.502 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-0.8161 11.0269 -26.1874" CameraRotation="0.06 0.5 0" LightPosition="0 30 0" ViewportRatio="3" ClipFar="1000" MouseVisible="255" NoSound="1" FileVersion="2" AndroidPackageName="com.rado1.PhysicsDemo3">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -11,11 +11,11 @@
   https://github.com/Rado-1/ZgeBullet
 
   Download Windows DLL and Android shared library from
-  http://googledrive.com/host/0BxwfQ8la88ouQTVuLWJfY1dMVGs/
+  https://github.com/Rado-1/ZgeBullet/releases
 
   Copyright (c) 2012-2015 Radovan Cervenka
 
-  Version: 2.0 (2015-06-08)
+  Version: 2.1 (2015-06-27)
 */
 
 
@@ -63,15 +63,19 @@ const int ZBT_CF_KINEMATIC_OBJECT= 2;
 const int ZBT_CF_NO_CONTACT_RESPONSE = 4;
 const int ZBT_CF_CUSTOM_MATERIAL_CALLBACK = 8;
 const int ZBT_CF_CHARACTER_OBJECT = 16;
-//const int ZBT_CF_DISABLE_VISUALIZE_OBJECT = 32;
 const int ZBT_CF_DISABLE_SPU_COLLISION_PROCESSING = 64;
 
 
 // Functions
 
-void zbtCreateWorld() {}
 
-void zbtDestroyWorld() {}
+// World
+
+xptr zbtCreateWorld() {}
+
+void zbtDestroyWorld(xptr world) {}
+
+void zbtSetCurrentWorld(xptr world) {}
 
 void zbtSetWorldGravity(float x, float y, float z) {}
 
@@ -293,6 +297,8 @@ void zbtSetGeneric6DofSpring(xptr spring,
 	int axis, int bEnableSpring, float stiffness, float damping,
 	float equilibriumPoint) {}
 
+void zbtSetEnabled(xptr constraint, int bEnabled) {}
+
 void zbtDeleteConstraint(xptr constraint) {}
 
 
@@ -427,20 +433,30 @@ void zbtGetPositionXYZ(xptr obj,
 
 void zbtGetPosition(xptr obj, xptr outPosition) {}
 
-void zbtSetPosition(xptr obj, float x, float y, float z) {}
+void zbtSetPositionXYZ(xptr obj, float x, float y, float z) {}
+
+void zbtSetPosition(xptr obj, xptr position) {}
 
 void zbtGetRotationXYZ(xptr obj,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetRotation(xptr obj, xptr outRotation) {}
 
-void zbtSetRotation(xptr obj, float rx, float ry, float rz) {}
+void zbtSetRotationXYZ(xptr obj, float rx, float ry, float rz) {}
+
+void zbtSetRotation(xptr obj, xptr rotation) {}
 
 void zbtGetPosRotXYZ(xptr obj,
 	ref float outX, ref float outY, ref float outZ,
 	ref float outRx, ref float outRy, ref float outRz) {}
 
 void zbtGetPosRot(xptr obj, xptr outPosition, xptr outRotation) {}
+
+void zbtSetPosRotXYZ(xptr obj,
+	float x, float y, float z,
+	float rx, float ry, float rz) {}
+
+void zbtSetPosRot(xptr obj, xptr position, xptr rotation) {}
 
 void zbtSetCollisionFlags(xptr obj, int flags) {}
 
@@ -510,6 +526,9 @@ const float SUSP_STIFFNESS = 20.0;
 
 // Global variables
 
+// simulation world
+xptr World;
+
 // terrain array
 float[10,10] Terrain;
 
@@ -528,7 +547,8 @@ float Break;]]>
 setRandomSeed(getSystemTime());
 
 // init physical world
-zbtCreateWorld();
+World = zbtCreateWorld();
+zbtSetCurrentWorld(World);
 zbtSetWorldGravity(0, -10, 0);
 
 // create terrain
@@ -601,7 +621,7 @@ zbtStepSimulation(t, 1, t);]]>
     <RenderText Text="::::::::::::::::::::::::::::::::::::::" Y="-0.6" Scale="0.5" StretchY="0.5"/>
   </OnRender>
   <OnClose>
-    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld();"/>
+    <ZExpression Comment="Destroy physical world" Expression="zbtDestroyWorld(World);"/>
   </OnClose>
   <Content>
     <Group Comment="Artwork">
@@ -706,7 +726,7 @@ n = v;]]>
         <Group Comment="Bitmaps and Materials">
           <Children>
             <Material Name="ObjectMaterial" WireframeWidth="0" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1"/>
-            <Bitmap Name="WheelBitmap">
+            <Bitmap Name="WheelBitmap" Width="16" Height="16">
               <Producers>
                 <BitmapRect UseBlankSource="255" Color="0.502 0.251 0 1" Size="-1 -1 0 1"/>
               </Producers>
@@ -716,7 +736,7 @@ n = v;]]>
                 <MaterialTexture Texture="WheelBitmap" TextureScale="20 20 1" TextureWrapMode="1" TexCoords="1"/>
               </Textures>
             </Material>
-            <Bitmap Name="DigitsBitmap" Width="4" Height="1">
+            <Bitmap Name="DigitsBitmap" Width="256" Height="32">
               <Producers>
                 <BitmapFromFile Comment="Imported from num.png" DataWidth="256" DataHeight="32">
                   <BitmapFile>
@@ -727,7 +747,7 @@ n = v;]]>
             </Bitmap>
             <Font Name="DigitsFont" Bitmap="DigitsBitmap" FirstChar="4" CharPixelWidth="23" CharPixelHeight="32"/>
             <Material Name="DigitsMaterial" Light="0" Blend="2" ZBuffer="0" Font="DigitsFont"/>
-            <Bitmap Name="MeshBitmap" Filter="2">
+            <Bitmap Name="MeshBitmap" Width="16" Height="16" Filter="2">
               <Producers>
                 <BitmapRect UseBlankSource="1" Color="1 1 1 1" Size="-0.9 -0.9 0.9 0.9"/>
               </Producers>
@@ -742,7 +762,7 @@ n = v;]]>
                 <MaterialTexture Texture="MeshBitmap" TextureScale="20 10 1" TextureWrapMode="1" TexCoords="1"/>
               </Textures>
             </Material>
-            <Bitmap Name="SkyBitmap" Width="0" Height="3" Filter="2">
+            <Bitmap Name="SkyBitmap" Width="16" Height="128" Filter="2">
               <Producers>
                 <BitmapFromFile Comment="Imported from sky.png" DataWidth="16" DataHeight="128">
                   <BitmapFile>
