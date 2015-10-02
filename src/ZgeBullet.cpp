@@ -39,6 +39,7 @@ freely, subject to the following restrictions:
 
 #ifdef _WIN32
 #define EXPORT extern "C" __declspec(dllexport)
+#define NULL nullptr
 #else
 #define EXPORT extern "C"
 #endif
@@ -66,16 +67,27 @@ struct v3{
 	}
 };
 
+struct v4 : v3{
+	float w;
+
+	inline void set(btQuaternion const & src) {
+		x = src.getX();
+		y = src.getY();
+		z = src.getZ();
+		w = src.getW();
+	}
+};
+
 // A single physical simulation world
 struct simulationWorld {
 
 	simulationWorld() :
+		rayTestHitPoint(btVector3(0, 0, 0)),
+		rayTestHitNormal(btVector3(0, 0, 0)),
 		createGhostPairCallback(true),
 		vehicleRaycaster(NULL),
 		manifoldIndex(-1),
-		manifoldPointIndex(-1),
-		rayTestHitPoint(btVector3(0, 0, 0)),
-		rayTestHitNormal(btVector3(0, 0, 0))
+		manifoldPointIndex(-1)
 	{
 		broadphase = new btDbvtBroadphase();
 		collisionConfiguration = new btDefaultCollisionConfiguration();
@@ -308,7 +320,7 @@ EXPORT btCollisionShape* zbtCreateTriangleMeshShape(float* triangles, int numTri
 		break;
 	case 3: // concave deformable mesh
 		tm = new btGImpactMeshShape(triangleMesh);
-		((btGImpactMeshShape*)tm)->updateBound();
+		static_cast<btGImpactMeshShape*>(tm)->updateBound();
 	}
 
 	ADD_COLLISION_SHAPE(tm);
@@ -322,7 +334,7 @@ EXPORT void zbtSetShapeLocalScaling(btCollisionShape* shape, float x, float y, f
 	shape->setLocalScaling(btVector3(x, y, z));
 
 	if (shape->getShapeType() == GIMPACT_SHAPE_PROXYTYPE)
-		((btGImpactMeshShape*)shape)->updateBound();
+		static_cast<btGImpactMeshShape*>(shape)->updateBound();
 }
 
 EXPORT void zbtSetShapeMargin(btCollisionShape* shape, float margin) {
@@ -422,7 +434,7 @@ EXPORT void zbtSetAngularVelocity(btRigidBody* rigidBody, float x, float y, floa
 }
 
 EXPORT void zbtGetAngularVelocity(btRigidBody* rigidBody, float &outX, float &outY, float &outZ) {
-	btVector3 angularVelocity = rigidBody->getAngularVelocity() / SIMD_2_PI;
+	btVector3 angularVelocity = rigidBody->getAngularVelocity();
 	outX = angularVelocity.getX();
 	outY = angularVelocity.getY();
 	outZ = angularVelocity.getZ();
@@ -433,8 +445,8 @@ EXPORT void zbtApplyCentralImpulse(btRigidBody* rigidBody, float x, float y, flo
 	rigidBody->activate(true);
 }
 
-EXPORT void zbtApplyTorqueImpulse(btRigidBody* rigidBody, float x, float y, float z) {
-	rigidBody->applyTorqueImpulse(btVector3(x, y, z));
+EXPORT void zbtApplyCentralImpulseLocal(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->applyCentralImpulse(rigidBody->getWorldTransform().getBasis() * btVector3(x, y, z));
 	rigidBody->activate(true);
 }
 
@@ -442,6 +454,26 @@ EXPORT void zbtApplyImpulse(btRigidBody* rigidBody, float x, float y, float z,
 	float relX, float relY, float relZ) {
 
 	rigidBody->applyImpulse(btVector3(x, y, z), btVector3(relX, relY, relZ));
+	rigidBody->activate(true);
+}
+
+EXPORT void zbtApplyTorque(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->applyTorque(btVector3(x, y, z));
+	rigidBody->activate(true);
+}
+
+EXPORT void zbtApplyTorqueImpulse(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->applyTorqueImpulse(btVector3(x, y, z));
+	rigidBody->activate(true);
+}
+
+EXPORT void zbtApplyTorqueLocal(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->applyTorque(rigidBody->getWorldTransform().getBasis() * btVector3(x, y, z));
+	rigidBody->activate(true);
+}
+
+EXPORT void zbtApplyTorqueImpulseLocal(btRigidBody* rigidBody, float x, float y, float z) {
+	rigidBody->applyTorqueImpulse(rigidBody->getWorldTransform().getBasis() * btVector3(x, y, z));
 	rigidBody->activate(true);
 }
 
@@ -656,7 +688,7 @@ EXPORT void zbtEnableSliderAngularMotor(btSliderConstraint* slider,
 
 	slider->setPoweredAngMotor(bEnableMotor);
 	if (bEnableMotor) {
-		slider->setTargetAngMotorVelocity(targetVelocity*SIMD_2_PI);
+		slider->setTargetAngMotorVelocity(targetVelocity);
 		slider->setMaxAngMotorForce(maxForce);
 	}
 }
@@ -680,8 +712,8 @@ EXPORT void zbtSetGearConstraint(btGearConstraint* gear,
 	btVector3 axisA = btVector3(axisAx, axisAy, axisAz);
 	btVector3 axisB = btVector3(axisBx, axisBy, axisBz);
 
-	gear->setAxisA((btVector3&)axisA);
-	gear->setAxisB((btVector3&)axisB);
+	gear->setAxisA(static_cast<btVector3&>(axisA));
+	gear->setAxisB(static_cast<btVector3&>(axisB));
 	gear->setRatio(ratio);
 }
 
@@ -824,7 +856,7 @@ EXPORT int zbtAddWheel(btRaycastVehicle* vehicle,
 	float wheelAxleX, float wheelAxleY, float wheelAxleZ,
 	float wheelRadius, float suspRestLength, bool bIsFrontWheel) {
 
-	btWheelInfo wi = vehicle->addWheel(btVector3(connectionPointX, connectionPointY, connectionPointZ),
+	vehicle->addWheel(btVector3(connectionPointX, connectionPointY, connectionPointZ),
 		btVector3(directionX, directionY, directionZ), btVector3(wheelAxleX, wheelAxleY, wheelAxleZ),
 		suspRestLength, wheelRadius, gCurrentWorld->tuning, bIsFrontWheel);
 
@@ -987,7 +1019,7 @@ EXPORT btKinematicCharacterController* zbtCreateKinematicCharacterController(
 
 	ghostObject->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
 	btKinematicCharacterController* controller = new btKinematicCharacterController(ghostObject,
-		(btConvexShape*)ghostObject->getCollisionShape(), stepHeight);
+		static_cast<btConvexShape*>(ghostObject->getCollisionShape()), stepHeight);
 	gCurrentWorld->world->addAction(controller);
 
 	return controller;
@@ -1089,13 +1121,13 @@ EXPORT void zbtSetFriction(btCollisionObject* obj, float friction) {
 	obj->setFriction(friction);
 }
 
+EXPORT void zbtSetRollingFriction(btCollisionObject* obj, float friction) {
+	obj->setRollingFriction(friction);
+}
+
 EXPORT void zbtSetRestitution(btCollisionObject* obj, float restitution) {
 	obj->setRestitution(restitution);
 }
-
-/*EXPORT void zbtSetHitFraction(btCollisionObject* obj, float hitFraction) {
-	obj->setHitFraction(hitFraction);
-}*/
 
 EXPORT void zbtGetPositionXYZ(btCollisionObject* obj,
 	float &outX, float &outY, float &outZ) {
@@ -1170,6 +1202,22 @@ EXPORT void zbtSetPosRot(btCollisionObject* obj,
 		rotation.x, rotation.y, rotation.z);
 }
 
+EXPORT void zbtGetOrientation(btCollisionObject* obj, v4 &outOrientation) {
+	btQuaternion orn;
+	obj->getWorldTransform().getBasis().getRotation(orn);
+	outOrientation.set(orn);
+}
+
+EXPORT void zbtGetModelMatrix(btCollisionObject* obj, float* matrix) {
+	obj->getWorldTransform().getOpenGLMatrix(matrix);
+	matrix[15] = 1.0;
+}
+
+EXPORT void zbtGetModelMatrixInv(btCollisionObject* obj, float *matrix) {
+	obj->getWorldTransform().inverse().getOpenGLMatrix(matrix);
+	matrix[15] = 1.0;
+}
+
 EXPORT void zbtSetCollisionFlags(btCollisionObject* obj, int flags) {
 	obj->setCollisionFlags(flags);
 }
@@ -1238,8 +1286,8 @@ EXPORT bool zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &o
 		gCurrentWorld->manifoldPointIndex = gCurrentWorld->manifold->getNumContacts() - 1;
 	}
 
-	outObjA = (btCollisionObject*)gCurrentWorld->manifold->getBody0();
-	outObjB = (btCollisionObject*)gCurrentWorld->manifold->getBody1();
+	outObjA = const_cast<btCollisionObject*>(gCurrentWorld->manifold->getBody0());
+	outObjB = const_cast<btCollisionObject*>(gCurrentWorld->manifold->getBody1());
 
 	btManifoldPoint& pt = gCurrentWorld->manifold->getContactPoint(gCurrentWorld->manifoldPointIndex);
 
@@ -1257,8 +1305,8 @@ EXPORT void zbtGetCollidedObjects(int contactIndex,
 
 	btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(contactIndex);
 
-	outObjA = (btCollisionObject*)pm->getBody0();
-	outObjB = (btCollisionObject*)pm->getBody1();
+	outObjA = const_cast<btCollisionObject*>(pm->getBody0());
+	outObjB = const_cast<btCollisionObject*>(pm->getBody1());
 }
 
 EXPORT bool zbtIsColliding(btCollisionObject* obj) {
@@ -1266,7 +1314,7 @@ EXPORT bool zbtIsColliding(btCollisionObject* obj) {
 	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
 		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
 
-		if ((btCollisionObject*)pm->getBody0() == obj || (btCollisionObject*)pm->getBody1() == obj)
+		if (const_cast<btCollisionObject*>(pm->getBody0()) == obj || const_cast<btCollisionObject*>(pm->getBody1()) == obj)
 			return true;
 	}
 
@@ -1279,7 +1327,7 @@ EXPORT int zbtGetNumberOfCollisions(btCollisionObject* obj) {
 	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
 		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
 
-		if ((btCollisionObject*)pm->getBody0() == obj || (btCollisionObject*)pm->getBody1() == obj)
+		if (const_cast<btCollisionObject*>(pm->getBody0()) == obj || const_cast<btCollisionObject*>(pm->getBody1()) == obj)
 			ret++;
 	}
 
@@ -1290,8 +1338,8 @@ EXPORT bool zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) 
 
 	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
 		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
-		btCollisionObject* coA = (btCollisionObject*)pm->getBody0();
-		btCollisionObject* coB = (btCollisionObject*)pm->getBody1();
+		btCollisionObject* coA = const_cast<btCollisionObject*>(pm->getBody0());
+		btCollisionObject* coB = const_cast<btCollisionObject*>(pm->getBody1());
 
 		if ((coA == objA && coB == objB) || (coA == objB && coB == objA)) {
 			int j = pm->getNumContacts() - 1;
@@ -1315,7 +1363,7 @@ EXPORT btCollisionObject* zbtRayTest(float fromX, float fromY, float fromZ, floa
 		gCurrentWorld->rayTestHitPoint = crrc.m_hitPointWorld;
 		gCurrentWorld->rayTestHitNormal = crrc.m_hitNormalWorld;
 
-		return (btCollisionObject*) crrc.m_collisionObject;
+		return const_cast<btCollisionObject*>(crrc.m_collisionObject);
 	} else
 		return NULL;
 }

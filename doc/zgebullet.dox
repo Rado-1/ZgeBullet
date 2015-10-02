@@ -1,7 +1,7 @@
 /*
   Doxygen documentation to ZgeBullet Library - zgebullet.txt
   Copyright (c) 2012-2015 Radovan Cervenka
-  Version: 2.1 (2015-06-??)
+  Version: 2.2 (2015-10-01)
 */
 
 
@@ -178,14 +178,14 @@ Functions used to manipulate and simulate physical world.
 	xptr world)
 @brief Destroy physics simulation world together with all instantiated
 	collision objects, constraints and collision shapes.
-@param pointer to simulation world
+@param world pointer to simulation world
 
 @fn void zbtSetCurrentWorld(
 	xptr world)
 @brief Set the current simulation world. All other functions for creating and
 	deleting physics-aware objects will be executed in the context of this
 	simulation world.
-@param pointer to simulation world
+@param world pointer to simulation world
 
 @fn void zbtSetWorldGravity(
 	float x, float y, float z)
@@ -482,15 +482,15 @@ activate/wake up sleeping objects).
 
 @fn void zbtApplyCentralImpulse(
 	xptr rigidBody, float x, float y, float z)
-@brief Apply central impulse to rigid body and activate it.
+@brief Apply central impulse to rigid body in world space and activate it.
 @param rigidBody pointer to rigid body
-@param x, y, z vector of impulse
+@param x, y, z vector of impulse in world space
 
-@fn void zbtApplyTorqueImpulse(
+@fn void zbtApplyCentralImpulseLocal(
 	xptr rigidBody, float x, float y, float z)
-@brief Apply torque impulse to rigid body and activate it.
+@brief Apply central impulse to rigid body in local space and activate it.
 @param rigidBody pointer to rigid body
-@param x, y, z vector of torque
+@param x, y, z vector of impulse in local space
 
 @fn void zbtApplyImpulse(
 	xptr rigidBody, float x, float y, float z,
@@ -499,6 +499,30 @@ activate/wake up sleeping objects).
 @param rigidBody pointer to rigid body
 @param x, y, z vector of impulse
 @param relX, relY, relZ relative position of applying impulse
+
+@fn void zbtApplyTorque(
+	xptr rigidBody, float x, float y, float z)
+@brief Apply torque to rigid body in world space and activate it.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of torque in world space
+
+@fn void zbtApplyTorqueImpulse(
+	xptr rigidBody, float x, float y, float z)
+@brief Apply torque impulse to rigid body in world space and activate it.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of torque impulse in world space
+
+@fn void zbtApplyTorqueLocal(
+	xptr rigidBody, float x, float y, float z)
+@brief Apply torque to rigid body in local space and activate it.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of torque in local space
+
+@fn void zbtApplyTorqueImpulseLocal(
+	xptr rigidBody, float x, float y, float z)
+@brief Apply torque impulse to rigid body in local space and activate it.
+@param rigidBody pointer to rigid body
+@param x, y, z vector of torque impulse in local space
 
 @fn void zbtSetSleepingThresholds(
 	xptr rigidBody, float linear, float angular)
@@ -1437,6 +1461,16 @@ on hit. Default value is 0.5.
 @param obj pointer to collision object
 @param friction friction of object
 
+@fn void zbtSetRollingFriction(
+	xptr obj, float friction)
+@brief Set rolling friction of collision object.
+@details Rolling friction is the resistive force that slows down rolling of
+rounded shapes, such as spheres, cylinders and capsules. It should be greater
+than 0. Low values (near to 0) make objects rolling long. Higher values restrict
+object rolling.
+@param obj pointer to collision object
+@param friction friction of object
+
 @fn void zbtSetRestitution(
 	xptr obj, float restitution)
 @brief Set restitution of collision object.
@@ -1530,6 +1564,32 @@ object gains energy with each bounce. Default value is 0.0.
 @param obj pointer to collision object
 @param position pointer to vec3 representing new position of object
 @param rotation pointer to vec3 representing new rotation of object
+
+@fn void zbtGetOrientation(
+	xptr obj, xptr outOrientation)
+@brief Get orientation (rotation) of collision object expressed as quaternion.
+@param obj pointer to collision object
+@param[out] outOrientation pointer to vec4 set to the rotation quaternion
+
+@fn void zbtGetModelMatrix(
+	xptr obj, xptr outMatrix)
+@brief Get OpenGL 4x4 model transformation matrix of object's position and
+rotation.
+@param obj pointer to collision object
+@param[out] outMatrix pointer to mat4 transformation matrix
+
+@fn void zbtGetModelMatrixInv(
+	xptr obj, xptr outMatrix)
+@brief Get inverse OpenGL 4x4 model transformation matrix of object's position
+and rotation.
+@details This function can be used to obtain View transformation matrix if the
+collision object carries a camera. The camera is usually pointed to the reverse
+direction of object; this is the way how rotations of cameras are expressed in
+ZGameEditor. View matrix can be used for computation of static objects of which
+positions are given in world coordinates; for instance, impacts of
+user-defined/computed lights in GLSL shaders.
+@param obj pointer to collision object
+@param[out] outMatrix pointer to mat4 inverse transformation matrix
 
 @fn void zbtSetCollisionFlags(
 	xptr obj, int flags)
