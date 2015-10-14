@@ -1729,6 +1729,15 @@ iteration.
 @param objB pointer to collision object B
 @return 0 - objects are not collided; 1 - objects are collided
 
+@fn float zbtGetCollisionImpulse(
+  xptr obj)
+@brief Returns the sum of all impulses that caused collision of collision
+  object.
+@details The return value can be used to compute impacts of collisions on
+  collided objects.
+@param obj pointer to collision object
+@return collision impulse
+
 *///! @}
 
 

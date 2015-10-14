@@ -1354,6 +1354,20 @@ EXPORT int zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) {
 	return 0;
 }
 
+EXPORT float zbtGetCollisionImpulse(btCollisionObject* obj) {
+
+	float imp = 0;
+	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
+		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
+
+		if (const_cast<btCollisionObject*>(pm->getBody0()) == obj || const_cast<btCollisionObject*>(pm->getBody1()) == obj)
+			for (int j = pm->getNumContacts() - 1; j >= 0; --j)
+				imp += pm->getContactPoint(j).getAppliedImpulse();
+	}
+
+	return imp;
+}
+
 
 // Raycasting
 
