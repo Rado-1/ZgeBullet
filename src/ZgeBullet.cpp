@@ -44,7 +44,6 @@ freely, subject to the following restrictions:
 #define EXPORT extern "C"
 #endif
 
-
 // Declarations of functions
 
 EXPORT void zbtDeleteRigidBody(btRigidBody*);
@@ -484,7 +483,7 @@ EXPORT void zbtSetSleepingThresholds(btRigidBody* rigidBody, float linear, float
 
 // Constraints and limits
 
-EXPORT bool zbtAreConnected(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB) {
+EXPORT int zbtAreConnected(btRigidBody* rigidBodyA, btRigidBody* rigidBodyB) {
 	return !rigidBodyA->checkCollideWithOverride(rigidBodyB);
 }
 
@@ -1070,7 +1069,7 @@ EXPORT void zbtSetCharacterMaxJumpHeight(btKinematicCharacterController* control
 	controller->setMaxJumpHeight(maxJumpHeight);
 }
 
-EXPORT bool zbtCharacterCanJump(btKinematicCharacterController* controller) {
+EXPORT int zbtCharacterCanJump(btKinematicCharacterController* controller) {
 
 	return controller->canJump();
 }
@@ -1098,7 +1097,7 @@ EXPORT void zbtSetCharacterUseGhostSweepTest(btKinematicCharacterController* con
 	controller->setUseGhostSweepTest(bUseGhostObjectSweepTest);
 }
 
-EXPORT bool zbtCharacterOnGround(btKinematicCharacterController* controller) {
+EXPORT int zbtCharacterOnGround(btKinematicCharacterController* controller) {
 
 	return controller->onGround();
 }
@@ -1222,7 +1221,7 @@ EXPORT void zbtSetCollisionFlags(btCollisionObject* obj, int flags) {
 	obj->setCollisionFlags(flags);
 }
 
-EXPORT bool zbtIsActive(btCollisionObject* obj) {
+EXPORT int zbtIsActive(btCollisionObject* obj) {
 	return obj->isActive();
 }
 
@@ -1274,7 +1273,7 @@ EXPORT int zbtStartCollisionDetection() {
 	return gCurrentWorld->manifoldIndex;
 }
 
-EXPORT bool zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &outObjB,
+EXPORT int zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &outObjB,
 	v3 &outPosA, v3 &outPosB, v3 &outNormal) {
 
 	if (gCurrentWorld->manifoldPointIndex < 0){
@@ -1309,7 +1308,7 @@ EXPORT void zbtGetCollidedObjects(int contactIndex,
 	outObjB = const_cast<btCollisionObject*>(pm->getBody1());
 }
 
-EXPORT bool zbtIsColliding(btCollisionObject* obj) {
+EXPORT int zbtIsColliding(btCollisionObject* obj) {
 
 	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
 		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
@@ -1334,7 +1333,7 @@ EXPORT int zbtGetNumberOfCollisions(btCollisionObject* obj) {
 	return ret;
 }
 
-EXPORT bool zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) {
+EXPORT int zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) {
 
 	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
 		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
@@ -1342,14 +1341,17 @@ EXPORT bool zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) 
 		btCollisionObject* coB = const_cast<btCollisionObject*>(pm->getBody1());
 
 		if ((coA == objA && coB == objB) || (coA == objB && coB == objA)) {
-			int j = pm->getNumContacts() - 1;
-			for (; j >= 0; --j) if (pm->validContactDistance(pm->getContactPoint(j))) break;
+			return pm->getNumContacts();
 
+			/* tests shown that this is not necessary
+			int j = pm->getNumContacts() - 1;
+			for (; j >= 0; --j) 
+				if (pm->validContactDistance(pm->getContactPoint(j))) break;
 			if (j >= 0) return true;
-			else return false;
+			return false;*/
 		}
 	}
-	return false;
+	return 0;
 }
 
 
