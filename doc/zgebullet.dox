@@ -1699,16 +1699,19 @@ contact points.
 	1 - output values were set
 	
 @fn void zbtGetCollidedObjects(
-	int contactIndex, xptr outObjA, xptr outObjB)
-@brief Return collided objects of manifold with the specified index.
+	int contactIndex, ref xptr outObjA, ref xptr outObjB,
+  ref float outAppliedImpulse)
+@brief Return collided objects of the contact manifold with the specified index.
 @details To obtain number of collided objects, first call the
-zbtStartCollisionDetection() function. Then, iterate through all collisions by
-zbtGetCollidedObjects() function, where @a contactIndex is changed in each
-iteration. 
+zbtStartCollisionDetection() function. Then, you can iterate through all
+collisions by zbtGetCollidedObjects() function, where @a contactIndex is changed
+in each iteration.
 @param contactIndex index to contact manifold; value is from 0 to 
 	zbtStartCollisionDetection() - 1
 @param[out] outObjA pointer to collided object A
 @param[out] outObjB pointer to collided object B
+@param[out] outAppliedImpulse pointer to float returning a sum of applied
+  impulses to all contact points of the contact manifold
 
 @fn int zbtIsColliding(
 	xptr obj)
@@ -1732,7 +1735,7 @@ iteration.
 @fn float zbtGetCollisionImpulse(
   xptr obj)
 @brief Returns the sum of all impulses that caused collision of collision
-  object.
+  object; 0.0 if no collision occurred.
 @details The return value can be used to compute impacts of collisions on
   collided objects.
 @param obj pointer to collision object

@@ -156,6 +156,11 @@ struct simulationWorld {
 	gCurrentWorld->collisionShapeList.push_back(shape); \
 	return shape
 
+#define ITERATE_MANIFOLDS_FOR_OBJECT(obj, body) \
+	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) { \
+		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i); \
+		if (const_cast<btCollisionObject*>(pm->getBody0()) == obj || const_cast<btCollisionObject*>(pm->getBody1()) == obj){ body; } }\
+
 
 // Globals
 
@@ -180,6 +185,15 @@ inline btTransform transform(float x, float y, float z, float rx, float ry, floa
 
 inline void checkWheel(btRaycastVehicle* vehicle, int wheelId) {
 	btAssert(wheelId >= 0 && wheelId < vehicle->getNumWheels());
+}
+
+// Returns a sum of all applied impulses to persistent manifold
+inline float sumAppliedImpulses(btPersistentManifold* pm) {
+	float imp = 0;
+	for (int j = pm->getNumContacts() - 1; j >= 0; --j)
+		imp += pm->getContactPoint(j).getAppliedImpulse();
+		
+	return imp;
 }
 
 
@@ -1300,35 +1314,25 @@ EXPORT int zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &ou
 }
 
 EXPORT void zbtGetCollidedObjects(int contactIndex,
-	btCollisionObject* &outObjA, btCollisionObject* &outObjB) {
+	btCollisionObject* &outObjA, btCollisionObject* &outObjB, float &outAppliedImpulse) {
 
 	btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(contactIndex);
 
 	outObjA = const_cast<btCollisionObject*>(pm->getBody0());
 	outObjB = const_cast<btCollisionObject*>(pm->getBody1());
+	outAppliedImpulse = sumAppliedImpulses(pm);
 }
 
 EXPORT int zbtIsColliding(btCollisionObject* obj) {
 
-	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
-		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
-
-		if (const_cast<btCollisionObject*>(pm->getBody0()) == obj || const_cast<btCollisionObject*>(pm->getBody1()) == obj)
-			return true;
-	}
-
+	ITERATE_MANIFOLDS_FOR_OBJECT(obj, return true)
 	return false;
 }
 
 EXPORT int zbtGetNumberOfCollisions(btCollisionObject* obj) {
 
 	int ret = 0;
-	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
-		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
-
-		if (const_cast<btCollisionObject*>(pm->getBody0()) == obj || const_cast<btCollisionObject*>(pm->getBody1()) == obj)
-			ret++;
-	}
+	ITERATE_MANIFOLDS_FOR_OBJECT(obj, ret++)
 
 	return ret;
 }
@@ -1351,19 +1355,14 @@ EXPORT int zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) {
 			return false;*/
 		}
 	}
+
 	return 0;
 }
 
 EXPORT float zbtGetCollisionImpulse(btCollisionObject* obj) {
 
 	float imp = 0;
-	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
-		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
-
-		if (const_cast<btCollisionObject*>(pm->getBody0()) == obj || const_cast<btCollisionObject*>(pm->getBody1()) == obj)
-			for (int j = pm->getNumContacts() - 1; j >= 0; --j)
-				imp += pm->getContactPoint(j).getAppliedImpulse();
-	}
+	ITERATE_MANIFOLDS_FOR_OBJECT(obj, imp += sumAppliedImpulses(pm))
 
 	return imp;
 }

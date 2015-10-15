@@ -497,10 +497,11 @@ void zbtSetIgnoreCollisionCheck(xptr objA, xptr objB,
 
 int zbtStartCollisionDetection() {}
 
-int zbtGetNextContact(xptr outObjA, xptr outObjB,
+int zbtGetNextContact(ref xptr outObjA, ref xptr outObjB,
 	xptr outPosA, xptr outPosB, xptr outNormal) {}
 
-void zbtGetCollidedObjects(int contactIndex, xptr outObjA, xptr outObjB) {}
+void zbtGetCollidedObjects(int contactIndex, ref xptr outObjA, ref xptr outObjB,
+  ref float outAppliedImpulse) {}
 
 int zbtIsColliding(xptr obj) {}
 
