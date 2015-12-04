@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := ZgeBullet
 
-MY_BULLET_PATH := bullet3-2.83.5/src
+MY_BULLET_PATH := bullet3-2.83.6/src
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/$(MY_BULLET_PATH)
 LOCAL_CPPFLAGS += -fexceptions -frtti
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -ldl -lm -lstdc++

@@ -1,7 +1,7 @@
 /*
   Doxygen documentation to ZgeBullet Library - zgebullet.txt
   Copyright (c) 2012-2015 Radovan Cervenka
-  Version: 2.2 (2015-10-02)
+  Version: 2.3 (2015-12-05)
 */
 
 
@@ -1531,6 +1531,36 @@ object gains energy with each bounce. Default value is 0.0.
 @param obj pointer to collision object
 @param rotation pointer to vec3 representing new rotation of object
 
+@fn void zbtGetRotationQuat(
+	xptr obj, xptr outQuaternion)
+@brief Get rotation of collision object expressed as quaternion.
+@param obj pointer to collision object
+@param[out] outQuaternion pointer to vec4 set to the rotation quaternion
+
+@fn void zbtGetRotationDirection(
+	xptr obj, xptr outDirection)
+@brief Get rotation direction of collision object.
+@details Rotation direction is relative position of a point the object is
+heading to.
+@param obj pointer to collision object
+@param[out] outDirection pointer to vec3 set to the rotation direction
+
+@fn void zbtSetRotationDirectionXYZ(
+  xptr obj, float x, float y, float z)
+@brief Set rotation direction of collision object.
+@details Rotation direction is relative position of a point the object is
+heading to.
+@param obj pointer to collision object
+@param x, y, z vector of rotation direction
+
+@fn void zbtSetRotationDirection(
+  xptr obj, xptr direction)
+@brief Set rotation direction of collision object.
+@details Rotation direction is relative position of a point the object is
+heading to.
+@param obj pointer to collision object
+@param direction pointer to a vec3 representing rotation direction
+
 @fn void zbtGetPosRotXYZ(
 	xptr obj,
 	ref float outX, ref float outY, ref float outZ,
@@ -1564,12 +1594,6 @@ object gains energy with each bounce. Default value is 0.0.
 @param obj pointer to collision object
 @param position pointer to vec3 representing new position of object
 @param rotation pointer to vec3 representing new rotation of object
-
-@fn void zbtGetOrientation(
-	xptr obj, xptr outOrientation)
-@brief Get orientation (rotation) of collision object expressed as quaternion.
-@param obj pointer to collision object
-@param[out] outOrientation pointer to vec4 set to the rotation quaternion
 
 @fn void zbtGetModelMatrix(
 	xptr obj, xptr outMatrix)

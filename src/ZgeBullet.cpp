@@ -33,12 +33,14 @@ freely, subject to the following restrictions:
 #include "BulletCollision/Gimpact/btGImpactShape.h"
 #include "BulletCollision/CollisionDispatch/btGhostObject.h"
 #include "BulletDynamics/Character/btKinematicCharacterController.h"
+#include "BulletCollision/CollisionShapes/btShapeHull.h"
 
 
 // Definitions
 
 #ifdef _WIN32
 #define EXPORT extern "C" __declspec(dllexport)
+#undef NULL
 #define NULL nullptr
 #else
 #define EXPORT extern "C"
@@ -78,7 +80,9 @@ struct v4 : v3{
 };
 
 // A single physical simulation world
-struct simulationWorld {
+ATTRIBUTE_ALIGNED16(struct) simulationWorld {
+
+	BT_DECLARE_ALIGNED_ALLOCATOR();
 
 	simulationWorld() :
 		rayTestHitPoint(btVector3(0, 0, 0)),
@@ -119,7 +123,7 @@ struct simulationWorld {
 		if (vehicleRaycaster) delete vehicleRaycaster;
 
 		// delete collision shapes
-		zbtDeleteAllShapes();
+		deleteAllShapes();
 
 		// delete related Bullet objects
 		delete world;
@@ -127,6 +131,13 @@ struct simulationWorld {
 		delete dispatcher;
 		delete collisionConfiguration;
 		delete broadphase;
+	}
+
+	void deleteAllShapes() {
+		for (int i = collisionShapeList.size() - 1; i >= 0; --i)
+			delete collisionShapeList[i];
+
+		collisionShapeList.clear();
 	}
 
 	btBroadphaseInterface* broadphase;
@@ -164,9 +175,14 @@ struct simulationWorld {
 
 // Globals
 
+// Constants
+
+const btVector3 FORWARD = btVector3(0.0, 0.0, 1.0);
+const btVector3 BACK = btVector3(0.0, 0.0, -1.0);
+const btVector3 LEFT = btVector3(1.0, 0.0, 0.0);
+
 // Variables
 
-//btAlignedObjectArray<simulationWorld*> gCurrentWorld->worlds;
 simulationWorld* gCurrentWorld = NULL;
 
 // Utilities
@@ -174,6 +190,9 @@ simulationWorld* gCurrentWorld = NULL;
 // Returns quaternion from Euler angles
 inline btQuaternion rot(float rx, float ry, float rz) {
 	btQuaternion q = btQuaternion();
+
+	// fixing gimbal lock
+	if (ry == 0.25 || ry == -0.25) ry += 0.0001f;
 	q.setEulerZYX(rz*SIMD_2_PI, ry*SIMD_2_PI, rx*SIMD_2_PI);
 	return q;
 }
@@ -290,7 +309,14 @@ EXPORT btCollisionShape* zbtCreateHeightfieldTerrainShape(void* heightfieldData,
 EXPORT btCollisionShape* zbtCreateConvexHullShape(float* points, int numPoints) {
 
 	try {
-		ADD_COLLISION_SHAPE(new btConvexHullShape(points, numPoints));
+		btConvexHullShape* ch = new btConvexHullShape(points, numPoints, sizeof(float) * 3);
+
+		//create a hull approximation - optimization of hull points
+		btShapeHull* hull = new btShapeHull(ch);
+		hull->buildHull(ch->getMargin());
+		delete ch;
+
+		ADD_COLLISION_SHAPE(new btConvexHullShape((const float*)hull->getVertexPointer(), hull->numVertices()));
 	} catch (...) { return NULL; }
 }
 
@@ -359,11 +385,7 @@ EXPORT void zbtDeleteShape(btCollisionShape* shape) {
 }
 
 EXPORT void zbtDeleteAllShapes() {
-	for (int i = gCurrentWorld->collisionShapeList.size() - 1; i >= 0; --i)
-		delete gCurrentWorld->collisionShapeList[i];
-	//gCurrentWorld->collisionShapeList.resize(0);
-
-	gCurrentWorld->collisionShapeList.clear();
+	gCurrentWorld->deleteAllShapes();
 }
 
 
@@ -1156,9 +1178,7 @@ EXPORT void zbtGetPosition(btCollisionObject* obj, v3 &outPosition) {
 }
 
 EXPORT void zbtSetPositionXYZ(btCollisionObject* obj, float x, float y, float z) {
-	btTransform trans = obj->getWorldTransform();
-	trans.setOrigin(btVector3(x, y, z));
-	obj->setWorldTransform(trans);
+	obj->getWorldTransform().setOrigin(btVector3(x, y, z));
 }
 
 EXPORT void zbtSetPosition(btCollisionObject* obj, v3 &position) {
@@ -1179,13 +1199,32 @@ EXPORT void zbtGetRotation(btCollisionObject* obj, v3 &outRotation) {
 }
 
 EXPORT void zbtSetRotationXYZ(btCollisionObject* obj, float rx, float ry, float rz) {
-	btTransform trans = obj->getWorldTransform();
-	trans.setRotation(rot(rx, ry, rz));
-	obj->setWorldTransform(trans);
+	obj->getWorldTransform().setRotation(rot(rx, ry, rz));
 }
 
 EXPORT void zbtSetRotation(btCollisionObject* obj, v3 &rotation) {
 	zbtSetRotationXYZ(obj, rotation.x, rotation.y, rotation.z);
+}
+
+EXPORT void zbtGetRotationQuat(btCollisionObject* obj, v4 &outOrientation) {
+	outOrientation.set(obj->getWorldTransform().getRotation());
+}
+
+EXPORT void zbtGetRotationDirection(btCollisionObject* obj, v3 &outDirection) {
+	outDirection.set(obj->getWorldTransform().getBasis() * FORWARD);
+}
+
+EXPORT void zbtSetRotationDirectionXYZ(btCollisionObject* obj, float x, float y, float z) {
+	btVector3 v = btVector3(x, y, z).normalize();
+
+	if (v == BACK)
+		obj->getWorldTransform().setRotation(btQuaternion(LEFT, SIMD_PI));
+	else if (v != FORWARD)
+		obj->getWorldTransform().setRotation(btQuaternion(FORWARD.cross(v), btAcos(FORWARD.dot(v))));
+}
+
+EXPORT void zbtSetRotationDirection(btCollisionObject* obj, v3 &direction) {
+	zbtSetRotationDirectionXYZ(obj, direction.x, direction.y, direction.z);
 }
 
 EXPORT void zbtGetPosRotXYZ(btCollisionObject* obj,
@@ -1213,12 +1252,6 @@ EXPORT void zbtSetPosRot(btCollisionObject* obj,
 
 	zbtSetPosRotXYZ(obj, position.x, position.y, position.z,
 		rotation.x, rotation.y, rotation.z);
-}
-
-EXPORT void zbtGetOrientation(btCollisionObject* obj, v4 &outOrientation) {
-	btQuaternion orn;
-	obj->getWorldTransform().getBasis().getRotation(orn);
-	outOrientation.set(orn);
 }
 
 EXPORT void zbtGetModelMatrix(btCollisionObject* obj, float* matrix) {
@@ -1281,7 +1314,7 @@ EXPORT void zbtSetIgnoreCollisionCheck(btCollisionObject* objA, btCollisionObjec
 }
 
 EXPORT int zbtStartCollisionDetection() {
-	gCurrentWorld->manifoldIndex = gCurrentWorld->world->getDispatcher()->getNumManifolds();
+	gCurrentWorld->manifoldIndex = gCurrentWorld->dispatcher->getNumManifolds();
 	gCurrentWorld->manifoldPointIndex = -1;
 
 	return gCurrentWorld->manifoldIndex;
@@ -1294,7 +1327,7 @@ EXPORT int zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &ou
 
 		if (gCurrentWorld->manifoldIndex == 0) return false;
 		gCurrentWorld->manifoldIndex--;
-		gCurrentWorld->manifold = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(gCurrentWorld->manifoldIndex);
+		gCurrentWorld->manifold = gCurrentWorld->dispatcher->getManifoldByIndexInternal(gCurrentWorld->manifoldIndex);
 
 		gCurrentWorld->manifoldPointIndex = gCurrentWorld->manifold->getNumContacts() - 1;
 	}
@@ -1316,7 +1349,7 @@ EXPORT int zbtGetNextContact(btCollisionObject* &outObjA, btCollisionObject* &ou
 EXPORT void zbtGetCollidedObjects(int contactIndex,
 	btCollisionObject* &outObjA, btCollisionObject* &outObjB, float &outAppliedImpulse) {
 
-	btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(contactIndex);
+	btPersistentManifold* pm = gCurrentWorld->dispatcher->getManifoldByIndexInternal(contactIndex);
 
 	outObjA = const_cast<btCollisionObject*>(pm->getBody0());
 	outObjB = const_cast<btCollisionObject*>(pm->getBody1());
@@ -1339,8 +1372,8 @@ EXPORT int zbtGetNumberOfCollisions(btCollisionObject* obj) {
 
 EXPORT int zbtIsCollidedWith(btCollisionObject* objA, btCollisionObject* objB) {
 
-	for (int i = gCurrentWorld->world->getDispatcher()->getNumManifolds() - 1; i >= 0; --i) {
-		btPersistentManifold* pm = gCurrentWorld->world->getDispatcher()->getManifoldByIndexInternal(i);
+	for (int i = gCurrentWorld->dispatcher->getNumManifolds() - 1; i >= 0; --i) {
+		btPersistentManifold* pm = gCurrentWorld->dispatcher->getManifoldByIndexInternal(i);
 		btCollisionObject* coA = const_cast<btCollisionObject*>(pm->getBody0());
 		btCollisionObject* coB = const_cast<btCollisionObject*>(pm->getBody1());
 
