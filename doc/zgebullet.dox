@@ -1,7 +1,7 @@
 /*
   Doxygen documentation to ZgeBullet Library - zgebullet.txt
-  Copyright (c) 2012-2015 Radovan Cervenka
-  Version: 2.3 (2015-12-05)
+  Copyright (c) 2012-2016 Radovan Cervenka
+  Version: 2.4 Beta (2016-01-??)
 */
 
 
@@ -1696,9 +1696,21 @@ detection.
 @param objA pointer to collision object A
 @param objB pointer to collision object B
 @param bIgnoreCollisionCheck 0 - collision check of object A and object B is not
-	ignored; 1 - collision checkof A and B is ignored
+	ignored; 1 - collision check of A and B is ignored
 
-@fn int zbtStartCollisionDetection()
+@fn void zbtSetCollisionFilterGroupAndMask(
+  xptr obj, int group, int mask)
+@brief Set collision filtering group and mask for collision object.
+@details Collision group and mask are used for collision filtering to determine
+  whether objects should collide with other objects, or not. Collision mask
+  determines the groups the object collide with. Matching is computed as bitwise
+  or operator of mask with group. Relationship of collided objects is not
+  symmetric.
+@param obj pointer to collision object
+@param group collision group
+@param mask collision mask
+
+  @fn int zbtStartCollisionDetection()
 @brief Start querying of collision detection.
 @return number of manifolds - contact areas of 2 objects; one manifold
 	can have more contact points obtained by zbtGetNextContact() function
@@ -1779,10 +1791,26 @@ objects remotely.
 	float fromX, float fromY, float fromZ,
 	float toX, float toY, float toZ)
 @brief Perform ray casting between two points in world and return the first hit
-	colision object, or null if no object appears between the two points.
+  collision object, or null if no object appears between the two points.
 @param fromX, fromY, fromZ position of the raycasting source point
 @param toX, toY, toZ position of the raycasting target point
 @return pointer to the first hit collision object, or null if no object was hit
+
+@fn xptr zbtRayTestFiltered(
+	float fromX, float fromY, float fromZ,
+	float toX, float toY, float toZ,
+  int filterGroup, int filterMask)
+@brief Perform filtered ray casting between two points in world and return the
+  first hit collision object, or null if no object appears between the two
+  points.
+@details Only that collision object is returned of which group matches the ray's
+  filter and ray's group matches the object's filter.
+@param fromX, fromY, fromZ position of the raycasting source point
+@param toX, toY, toZ position of the raycasting target point
+@param filterGroup ray's filter group
+@param filterMask ray's filter mask
+@return pointer to the first hit collision object matching filtering criteria,
+  or null if no object was hit
 
 @fn void zbtGetRayTestHitPointXYZ(
 	ref float outX, ref float outY, ref float outZ)

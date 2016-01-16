@@ -1313,6 +1313,11 @@ EXPORT void zbtSetIgnoreCollisionCheck(btCollisionObject* objA, btCollisionObjec
 	objA->setIgnoreCollisionCheck(objB, bIgnoreCollisionCheck);
 }
 
+EXPORT void zbtSetCollisionFilterGroupAndMask(btCollisionObject* obj, int group, int mask) {
+	obj->getBroadphaseHandle()->m_collisionFilterGroup = group;
+	obj->getBroadphaseHandle()->m_collisionFilterMask = mask;
+}
+
 EXPORT int zbtStartCollisionDetection() {
 	gCurrentWorld->manifoldIndex = gCurrentWorld->dispatcher->getNumManifolds();
 	gCurrentWorld->manifoldPointIndex = -1;
@@ -1403,17 +1408,27 @@ EXPORT float zbtGetCollisionImpulse(btCollisionObject* obj) {
 
 // Raycasting
 
-EXPORT btCollisionObject* zbtRayTest(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {
+EXPORT btCollisionObject* zbtRayTestFiltered(float fromX, float fromY, float fromZ, float toX, float toY, float toZ,
+	int filterGroup, int filterMask) {
 
-	btCollisionWorld::ClosestRayResultCallback crrc(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ)); 
+	btCollisionWorld::ClosestRayResultCallback crrc(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ));
+	crrc.m_collisionFilterGroup = filterGroup;
+	crrc.m_collisionFilterMask = filterMask;
 	gCurrentWorld->world->rayTest(btVector3(fromX, fromY, fromZ), btVector3(toX, toY, toZ), crrc);
-	if (crrc.hasHit()){
+	if (crrc.hasHit()) {
 		gCurrentWorld->rayTestHitPoint = crrc.m_hitPointWorld;
 		gCurrentWorld->rayTestHitNormal = crrc.m_hitNormalWorld;
 
 		return const_cast<btCollisionObject*>(crrc.m_collisionObject);
-	} else
+	}
+	else
 		return NULL;
+}
+
+EXPORT btCollisionObject* zbtRayTest(float fromX, float fromY, float fromZ, float toX, float toY, float toZ) {
+
+	return zbtRayTestFiltered(fromX, fromY, fromZ, toX, toY, toZ,
+				btBroadphaseProxy::DefaultFilter, btBroadphaseProxy::AllFilter);
 }
 
 EXPORT void zbtGetRayTestHitPointXYZ(float &outX, float &outY, float &outZ) {
