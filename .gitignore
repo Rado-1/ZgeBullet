@@ -9,6 +9,7 @@
 *.wings~
 *.sdf
 *.suo
+*.db
 *.vcxproj.user
 *.opensdf
 bullet*/
@@ -20,4 +21,5 @@ com.rado1.*/
 *downloads/
 html/
 Release/
+Debug/
 ipch/

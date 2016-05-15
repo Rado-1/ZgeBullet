@@ -1215,7 +1215,12 @@ EXPORT void zbtGetRotationDirection(btCollisionObject* obj, v3 &outDirection) {
 }
 
 EXPORT void zbtSetRotationDirectionXYZ(btCollisionObject* obj, float x, float y, float z) {
-	btVector3 v = btVector3(x, y, z).normalize();
+	btVector3 v = btVector3(x, y, z);
+
+	// skip if almost zero - would throw exception
+	if (v.fuzzyZero()) return;
+
+	v = v.normalize();
 
 	if (v == BACK)
 		obj->getWorldTransform().setRotation(btQuaternion(LEFT, SIMD_PI));

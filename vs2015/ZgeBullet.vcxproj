@@ -106,11 +106,12 @@
       <AdditionalIncludeDirectories>$(BulletDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsManaged>false</CompileAsManaged>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>BulletDynamics_vs2010.lib;LinearMath_vs2010.lib;BulletCollision_vs2010.lib</AdditionalDependencies>
+      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <AdditionalDependencies>BulletDynamics_vs2010_debug.lib;LinearMath_vs2010_debug.lib;BulletCollision_vs2010_debug.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(BulletDir)\bin;$(BulletDir)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

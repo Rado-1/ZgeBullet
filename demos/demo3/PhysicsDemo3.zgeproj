@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1" ?>
-<ZApplication Name="App" Comment="ZgeBullet demo #3. Created by Rado1" Caption="Physics Demo 3" AmbientLightColor="0.502 0.502 0.502 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-0.8161 11.0269 -26.1874" CameraRotation="0.06 0.5 0" LightPosition="0 30 0" ViewportRatio="3" ClipFar="1000" MouseVisible="255" NoSound="1" FileVersion="2" AndroidPackageName="com.rado1.PhysicsDemo3">
+<ZApplication Name="App" Comment="ZgeBullet demo #3. Created by Rado1" Caption="Physics Demo 3" AmbientLightColor="0.502 0.502 0.502 1" FrameRateStyle="1" ScreenMode="0" CameraPosition="-0.8161 11.0269 -26.1874" CameraRotation="0.06 0.5 0" LightPosition="0 30 0" ViewportRatio="3" ClipFar="1000" MouseVisible="255" FileVersion="2" AndroidPackageName="com.rado1.PhysicsDemo3">
   <OnLoaded>
     <ZExternalLibrary Comment="Bullet 3D physics" ModuleName="ZgeBullet" CallingConvention="1" BeforeInitExp="if(ANDROID) this.ModuleName = &quot;./libZgeBullet.so&quot;;">
       <Source>
@@ -731,7 +731,7 @@ n = v;]]>
                 <BitmapRect UseBlankSource="255" Color="0.502 0.251 0 1" Size="-1 -1 0 1"/>
               </Producers>
             </Bitmap>
-            <Material Name="WheelMaterial" WireframeWidth="1" Color="1 1 1 0.5">
+            <Material Name="WheelMaterial" Color="1 1 1 0.5">
               <Textures>
                 <MaterialTexture Texture="WheelBitmap" TextureScale="20 20 1" TextureWrapMode="1" TexCoords="1"/>
               </Textures>
@@ -752,12 +752,12 @@ n = v;]]>
                 <BitmapRect UseBlankSource="1" Color="1 1 1 1" Size="-0.9 -0.9 0.9 0.9"/>
               </Producers>
             </Bitmap>
-            <Material Name="TerrainMaterial" WireframeWidth="1" Color="1 0.502 1 0.5" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
+            <Material Name="TerrainMaterial" Color="1 0.502 1 0.5" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1" DrawBackFace="255">
               <Textures>
                 <MaterialTexture Texture="MeshBitmap" TextureScale="100 100 1" TextureWrapMode="1" TexCoords="1"/>
               </Textures>
             </Material>
-            <Material Name="SphereMaterial" WireframeWidth="1" Color="1 1 1 0.5" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1">
+            <Material Name="SphereMaterial" Color="1 1 1 0.5" SpecularColor="0 0 0 1" EmissionColor="0 0 0 1">
               <Textures>
                 <MaterialTexture Texture="MeshBitmap" TextureScale="20 10 1" TextureWrapMode="1" TexCoords="1"/>
               </Textures>
