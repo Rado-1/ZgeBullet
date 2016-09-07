@@ -90,6 +90,7 @@ ATTRIBUTE_ALIGNED16(struct) simulationWorld {
 		createGhostPairCallback(true),
 		vehicleRaycaster(NULL),
 		manifoldIndex(-1),
+		manifold(NULL),
 		manifoldPointIndex(-1)
 	{
 		broadphase = new btDbvtBroadphase();
