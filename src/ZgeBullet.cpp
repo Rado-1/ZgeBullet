@@ -1066,8 +1066,10 @@ EXPORT void zbtDeleteKinematicCharacterController(btKinematicCharacterController
 	delete controller;
 }
 
-EXPORT void zbtSetCharacterUpAxis(btKinematicCharacterController* controller, int axis) {
-	controller->setUpAxis(axis);
+EXPORT void zbtSetCharacterUp(btKinematicCharacterController* controller,
+	float x, float y, float z) {
+	
+	controller->setUp(btVector3(x, y, z));
 }
 
 EXPORT void zbtSetCharacterWalkDirection(btKinematicCharacterController* controller,
@@ -1117,9 +1119,9 @@ EXPORT void zbtCharacterJump(btKinematicCharacterController* controller) {
 }
 
 EXPORT void zbtSetCharacterGravity(btKinematicCharacterController* controller,
-	float gravity) {
+	float x, float y, float z) {
 
-	controller->setGravity(gravity);
+	controller->setGravity(btVector3(x, y, z));
 }
 
 EXPORT void zbtSetCharacterMaxSlope(btKinematicCharacterController* controller,

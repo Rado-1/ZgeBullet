@@ -107,9 +107,8 @@ can be used in zbtSetVehicleTunning() function.
 /*! @name Axes
 @anchor ZBT_AXIS_
 Values used to determine axis. All values can be used for @a axis parameter of
-zbtSetGeneric6DofLimits() function. @c ZBT_AXIS_*_LINEAR can be used for @a
-upAxis parameter in zbtCreateHeightfieldTerrainShape() function and @a axis
-parameter of zbtSetCharacterUpAxis() function.
+zbtSetGeneric6DofLimits() function. @c ZBT_AXIS_*_LINEAR can be used also for @a
+upAxis parameter in zbtCreateHeightfieldTerrainShape() function.
 @{
 
 @var ZBT_AXIS_X_LINEAR
@@ -1336,11 +1335,11 @@ usually a capsule. Axis Y is up by default.
 clear resources.
 @param controller pointer to kinematic character controller
 
-@fn void zbtSetCharacterUpAxis(
-	xptr controller, int axis)
-@brief Set up axis of kinematic character controller.
+@fn void zbtSetCharacterUp(
+	xptr controller, float x, float y, float z)
+@brief Set up direction of kinematic character controller.
 @param controller pointer to kinematic character controller
-@param axis linear axis representing the up axis of character
+@param x, y, z up vector
 
 @fn void zbtSetCharacterWalkDirection(
 	xptr controller, float x, float y, float z)
@@ -1398,11 +1397,11 @@ intervals will result in no motion.
 @param controller pointer to kinematic character controller
 
 @fn void zbtSetCharacterGravity(
-	xptr controller, float gravity)
+	xptr controller, float x, float y, float z)
 @brief Set gravity of kinematic character controller.
 @details Gravity scalar represents slowdown of vertical velocity during jumping.
 @param controller pointer to kinematic character controller
-@param gravity gravity
+@param x, y, z gravity vector
 
 @fn void zbtSetCharacterMaxSlope(
 	xptr controller, float slope)

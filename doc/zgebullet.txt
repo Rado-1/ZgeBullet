@@ -389,7 +389,7 @@ xptr zbtCreateKinematicCharacterController(
 
 void zbtDeleteKinematicCharacterController(xptr controller) {}
 
-void zbtSetCharacterUpAxis(xptr controller, int axis) {}
+void zbtSetCharacterUp(xptr controller, float x, float y, float z) {}
 
 void zbtSetCharacterWalkDirection(xptr controller, 
 	float x, float y, float z) {}
@@ -409,7 +409,7 @@ int zbtCharacterCanJump(xptr controller) {}
 
 void zbtCharacterJump(xptr controller) {}
 
-void zbtSetCharacterGravity(xptr controller, float gravity) {}
+void zbtSetCharacterGravity(xptr controller, float x, float y, float z) {}
 
 void zbtSetCharacterMaxSlope(xptr controller, float slope) {}
 
