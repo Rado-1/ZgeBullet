@@ -1,6 +1,6 @@
  /*
 ZgeBullet Library
-Copyright (c) 2012-2015 Radovan Cervenka
+Copyright (c) 2012-2018 Radovan Cervenka
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any damages
@@ -46,8 +46,10 @@ freely, subject to the following restrictions:
 #define EXPORT extern "C"
 #endif
 
-// Declarations of functions
 
+// Declarations of functions
+struct simulationWorld;
+EXPORT void zbtSetCurrentWorld(simulationWorld* world);
 EXPORT void zbtDeleteRigidBody(btRigidBody*);
 EXPORT void zbtDeleteAllShapes();
 EXPORT void zbtDeleteGhostObject(btGhostObject*);
@@ -101,6 +103,8 @@ ATTRIBUTE_ALIGNED16(struct) simulationWorld {
 	}
 
 	~simulationWorld() {
+
+		zbtSetCurrentWorld(this);
 
 		// delete collision objects
 		btCollisionObjectArray colArray = world->getCollisionObjectArray();
@@ -182,7 +186,7 @@ const btVector3 FORWARD = btVector3(0.0, 0.0, 1.0);
 const btVector3 BACK = btVector3(0.0, 0.0, -1.0);
 const btVector3 LEFT = btVector3(1.0, 0.0, 0.0);
 
-// Variables
+// Global variables
 
 simulationWorld* gCurrentWorld = NULL;
 
@@ -203,9 +207,9 @@ inline btTransform transform(float x, float y, float z, float rx, float ry, floa
 	return btTransform(rot(rx, ry, rz), btVector3(x, y, z));
 }
 
-inline void checkWheel(btRaycastVehicle* vehicle, int wheelId) {
+/*inline void checkWheel(btRaycastVehicle* vehicle, int wheelId) {
 	btAssert(wheelId >= 0 && wheelId < vehicle->getNumWheels());
-}
+}*/
 
 // Returns a sum of all applied impulses to persistent manifold
 inline float sumAppliedImpulses(btPersistentManifold* pm) {
@@ -900,47 +904,47 @@ EXPORT int zbtAddWheel(btRaycastVehicle* vehicle,
 }
 
 EXPORT void zbtSetWheelIsFront(btRaycastVehicle* vehicle, int wheelId, bool bIsFront) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_bIsFrontWheel = bIsFront;
 }
 
 EXPORT void zbtSetWheelRadius(btRaycastVehicle* vehicle, int wheelId, float radius) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_wheelsRadius = radius;
 }
 
 EXPORT void zbtSetWheelRollInfluence(btRaycastVehicle* vehicle, int wheelId, float rollInfluence) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_rollInfluence = rollInfluence;
 }
 
 EXPORT void zbtSetWheelFrictionSlip(btRaycastVehicle* vehicle, int wheelId, float frictionSlip) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_frictionSlip = frictionSlip;
 }
 
 EXPORT void zbtSetWheelSuspRestLength(btRaycastVehicle* vehicle, int wheelId, float suspRestLength) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_suspensionRestLength1 = suspRestLength;
 }
 
 EXPORT void zbtSetWheelMaxSuspTravel(btRaycastVehicle* vehicle, int wheelId, float maxSuspTravel) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_maxSuspensionTravelCm = maxSuspTravel;
 }
 
 EXPORT void zbtSetWheelSuspStiffness(btRaycastVehicle* vehicle, int wheelId, float suspStiffness) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_suspensionStiffness = suspStiffness;
 }
 
 EXPORT void zbtSetWheelDampingCompression(btRaycastVehicle* vehicle, int wheelId, float dampingCompression) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_wheelsDampingCompression = dampingCompression;
 }
 
 EXPORT void zbtSetWheelDampingRelaxation(btRaycastVehicle* vehicle, int wheelId, float dampingRelaxation) {
-	checkWheel(vehicle, wheelId);
+	//checkWheel(vehicle, wheelId);
 	vehicle->getWheelInfo(wheelId).m_wheelsDampingRelaxation = dampingRelaxation;
 }
 
