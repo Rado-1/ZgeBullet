@@ -4,9 +4,6 @@
   <PropertyGroup Label="UserMacros">
     <BulletDir>..\</BulletDir>
   </PropertyGroup>
-  <PropertyGroup>
-    <_PropertySheetDisplayName>ZgeBullet_x64</_PropertySheetDisplayName>
-  </PropertyGroup>
   <ItemDefinitionGroup />
   <ItemGroup>
     <BuildMacro Include="BulletDir">
