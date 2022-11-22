@@ -1,9 +1,9 @@
-mkdir linux
-gcc -Wall -O2 -fPIC -I ./bullet3-2.85.1/src -c ./src/ZgeBullet.cpp -o ./linux/ZgeBullet.o
+mkdir lib
+gcc -Wall -O2 -fPIC -I ./bullet3-2.85.1/src -c ./src/ZgeBullet.cpp -o ./lib/ZgeBullet.o
 C="./bullet3-2.85.1/build_cmake/src/BulletCollision/CMakeFiles/BulletCollision.dir"
 D="./bullet3-2.85.1/build_cmake/src/BulletDynamics/CMakeFiles/BulletDynamics.dir"
 M="./bullet3-2.85.1/build_cmake/src/LinearMath/CMakeFiles/LinearMath.dir"
-gcc -shared -O2 -o ./linux/ZgeBullet.so ./linux/ZgeBullet.o \
+gcc -shared -O2 -o ./lib/ZgeBullet.so ./lib/ZgeBullet.o \
 	$C/BroadphaseCollision/btAxisSweep3.o \
 	$C/BroadphaseCollision/btCollisionAlgorithm.o \
 	$C/BroadphaseCollision/btDbvt.o \
