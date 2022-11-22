@@ -74,34 +74,40 @@
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="ZgeBullet_x64.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\lib\</OutDir>
     <GenerateManifest>false</GenerateManifest>
+    <IncludePath>..\bullet3-2.85.1\src;$(IncludePath)</IncludePath>
+    <LibraryPath>..\bin;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)..\lib\</OutDir>
     <GenerateManifest>false</GenerateManifest>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\bin;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_$(Platform)</TargetName>
+    <IncludePath>..\bullet3-2.85.1\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
-    <OutDir>$(SolutionDir)..\lib\</OutDir>
-    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <OutDir>$(SolutionDir)..\lib\</OutDir>	
+    <LibraryPath>..\bin;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\bullet3-2.85.1\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <GenerateManifest>false</GenerateManifest>
     <EmbedManifest>false</EmbedManifest>
     <OutDir>$(SolutionDir)..\lib\</OutDir>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\bin;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_$(Platform)</TargetName>
+    <IncludePath>..\bullet3-2.85.1\src;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
